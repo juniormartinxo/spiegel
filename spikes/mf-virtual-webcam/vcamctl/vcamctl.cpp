@@ -80,6 +80,9 @@ static int CmdAddRemove(int argc, char** argv, bool add) {
     return 0;
 }
 
+static const wchar_t* g_camName = L"Spiegel";
+static wchar_t g_camNameBuf[128];
+
 static HRESULT FindCamera(IMFActivate** out, bool print) {
     ComPtr<IMFAttributes> attrs;
     MFCreateAttributes(&attrs, 1);
@@ -96,7 +99,7 @@ static HRESULT FindCamera(IMFActivate** out, bool print) {
         devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &name, &len);
         devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, &link, &len);
         if (print) printf("  [%u] %ls\n      %ls\n", i, name ? name : L"?", link ? link : L"?");
-        if (out && !*out && name && wcsstr(name, L"Spiegel")) {
+        if (out && !*out && name && wcsstr(name, g_camName)) {
             *out = devices[i];
             devices[i]->AddRef();
             hr = S_OK;
@@ -180,6 +183,11 @@ static int CmdProbe(int argc, char** argv) {
     Arg(argc, argv, "--format", &fmt);
     Arg(argc, argv, "--seconds", &secs);
     GUID want = !_stricmp(fmt, "yuy2") ? MFVideoFormat_YUY2 : MFVideoFormat_NV12;
+    const char* camName;
+    if (Arg(argc, argv, "--name", &camName)) {
+        MultiByteToWideChar(CP_UTF8, 0, camName, -1, g_camNameBuf, 128);
+        g_camName = g_camNameBuf;
+    }
     double seconds = atof(secs);
 
     ComPtr<IMFActivate> act;
@@ -208,8 +216,17 @@ static int CmdProbe(int argc, char** argv) {
         if (sub == want && !chosen) chosen = t;
     }
     if (!chosen) return Fail("Achar o formato pedido", MF_E_INVALIDMEDIATYPE);
-    hr = reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, chosen.Get());
-    if (FAILED(hr)) return Fail("SetCurrentMediaType", hr);
+    const char* dummy;
+    if (Arg(argc, argv, "--no-set", &dummy) || (argc > 2 && !strcmp(argv[argc - 1], "--no-set"))) {
+        // Second-client mode: don't ask for control, read whatever type is current.
+        ComPtr<IMFMediaType> cur;
+        reader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, &cur);
+        cur->GetGUID(MF_MT_SUBTYPE, &want);
+        printf("--no-set: lendo no tipo atual %s\n", Fourcc(want).c_str());
+    } else {
+        hr = reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, chosen.Get());
+        if (FAILED(hr)) return Fail("SetCurrentMediaType", hr);
+    }
 
     bool yuy2 = want == MFVideoFormat_YUY2;
     std::vector<double> lat;
