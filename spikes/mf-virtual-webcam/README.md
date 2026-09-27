@@ -32,7 +32,7 @@ pwsh -File scripts\install.ps1
 # como usuário comum:
 build\Release\vcamctl.exe add --lifetime session --access user   # a camera vive enquanto este processo viver
 build\Release\vcam-feeder.exe                                    # padrao de teste + janela de relogio
-build\Release\vcamctl.exe probe --format nv12 --seconds 10       # ou --format yuy2
+build\Release\vcamctl.exe probe --format nv12 --seconds 10       # ou --format yuy2; --no-set; --name <parte do nome>
 node browser\serve.mjs 8765   # e abra http://127.0.0.1:8765/ no navegador
 # limpeza (admin):
 pwsh -File scripts\uninstall.ps1
