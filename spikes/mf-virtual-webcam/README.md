@@ -54,7 +54,7 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | DirectShow (enumeração) | ✅ aparece com YUY2 e NV12 1280×720 @ 30 | `vcamctl dshow` |
 | OBS 32.1 "Dispositivo de captura de vídeo" | ✅ 1280×720 com formato "Qualquer", YUY2 e NV12, **também com a source oferecendo só NV12** (o YUY2 vem da ponte) | manual, pelo usuário |
 | Zoom 7.1.9 | ✅ prévia em Configurações → Vídeo (nome longo truncado: "Spiegel Spike Webcam (Câmera Virtual d...") | manual, screenshot do usuário |
-| Discord | ⚠️ inconclusivo: chamadas de vídeo bloqueadas no Brasil ("indisponíveis na sua região por determinação das autoridades brasileiras"), sem relação com a câmera. Prévia em Configurações → Voz e vídeo: pendente | manual, screenshot do usuário |
+| Discord | ⚠️ não testável daqui: o Discord bloqueia vídeo no Brasil (chamada e prévia mostram "Câmera indisponível ... por determinação das autoridades brasileiras"). O desktop é Electron/Chromium e usa `getUserMedia` como o Chrome, que funcionou; então provavelmente funciona, mas isso é inferência | manual, screenshots do usuário |
 | Teams (e o outro lado da chamada) | ⏳ pendente. O Teams não está instalado; testar no teams.microsoft.com ou instalar | |
 | webcamtests.com | ⏳ pendente (manual) | |
 
