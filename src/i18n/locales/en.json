@@ -1,0 +1,55 @@
+{
+  "app": {
+    "title": "Spiegel",
+    "settings": "Settings"
+  },
+  "devices": {
+    "heading": "Devices",
+    "count_one": "{{count}} connected",
+    "count_other": "{{count}} connected",
+    "state": {
+      "ready": "Ready",
+      "unauthorized": "Waiting for authorization",
+      "offline": "Offline",
+      "other": "State: {{state}}"
+    },
+    "hint": {
+      "unauthorized": "Unlock the device and tap “Allow” on the “Allow USB debugging?” prompt.",
+      "offline": "The device is not responding. Unplug the cable and plug it back in."
+    },
+    "serial": "Serial {{serial}}"
+  },
+  "empty": {
+    "title": "No devices connected",
+    "lead": "Connect an Android phone or tablet over USB. If it doesn't show up, check that:",
+    "debugging": "USB debugging is on in Settings › Developer options.",
+    "cable": "The cable carries data. Some cables only charge.",
+    "driver": "On Windows, the manufacturer's USB driver is installed.",
+    "unlocked": "The device is unlocked the first time you connect it, so you can accept the authorization prompt."
+  },
+  "adb": {
+    "starting": "Starting adb…",
+    "reconnecting": "The adb server stopped. Reconnecting…",
+    "conflict": {
+      "title": "Another adb server is already running",
+      "body": "It is version {{server}}, and Spiegel uses version {{client}}. Devices still show up, but Sessions may fail.",
+      "restart": "Restart with Spiegel's adb",
+      "restartNote": "Other programs that use adb lose their connection for a few seconds.",
+      "useOther": "Use another adb"
+    },
+    "notFound": "adb was not found at {{path}}.",
+    "failed": "adb failed: {{detail}}",
+    "openSettings": "Open settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "adbHeading": "adb",
+    "adbLead": "Spiegel ships its own adb. Only use another one if you already have adb installed and want both programs to share the same server.",
+    "bundled": "Bundled adb (recommended)",
+    "custom": "Another adb",
+    "customPlaceholder": "C:\\Android\\platform-tools\\adb.exe",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saveError": "Couldn't save: {{error}}"
+  }
+}

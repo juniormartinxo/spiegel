@@ -13,7 +13,27 @@ O idioma padrão do projeto é o **português do Brasil (pt-BR)**:
 
 ## Projeto
 
-O Spiegel é uma interface gráfica para o [scrcpy](https://github.com/Genymobile/scrcpy), que espelha e controla Android pelo adb. O repositório está no início: ainda não existe código, sistema de build nem testes. Acrescente aqui os comandos de build, execução e teste assim que existirem.
+O Spiegel é uma interface gráfica para o [scrcpy](https://github.com/Genymobile/scrcpy), que espelha e controla Android pelo adb.
+
+## Estrutura e comandos
+
+- `crates/spiegel-core/`: o núcleo em Rust (adb, registro de Dispositivos e, em breve, protocolo do scrcpy e Sessões). Não depende do Tauri. A API pública dele é a costura de teste, e o adb falso fica em `testing` (feature `testing`).
+- `src-tauri/`: a casca Tauri 2, que só liga o núcleo à interface por comandos e eventos.
+- `src/`: a interface em React + TypeScript (Vite). Os textos ficam em `src/i18n/locales/` (pt-BR e inglês, com as mesmas chaves).
+- `scripts/fetch-platform-tools.mjs`: baixa o adb embutido para `src-tauri/resources/platform-tools/`, que fica fora do git.
+
+Pré-requisitos: Rust (stable), Node 22+ e pnpm.
+
+```sh
+pnpm install
+pnpm fetch:adb                  # uma vez: baixa o adb embutido (o build falha sem ele)
+pnpm tauri dev                  # roda o aplicativo (Vite na porta 1420)
+cargo test --workspace          # testes do núcleo e da casca
+pnpm test                       # testes da interface (vitest)
+pnpm build                      # checagem de tipos + build da interface
+pnpm lint                       # oxlint
+cargo run -p spiegel-core --example watch_devices   # lista de Dispositivos ao vivo no terminal, com o adb real
+```
 
 O que já foi decidido (veja o `CONTEXT.md` para o vocabulário e `docs/adr/` para os motivos):
 

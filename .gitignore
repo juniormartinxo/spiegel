@@ -1,0 +1,20 @@
+# Dependências e builds
+node_modules
+dist
+target
+
+# adb embutido: baixado por scripts/fetch-platform-tools.mjs, não versionado
+src-tauri/resources/platform-tools
+
+# Saída de compilação dos spikes
+spikes/build
+
+# Logs e arquivos locais
+*.log
+*.local
+
+# Editores e sistema
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

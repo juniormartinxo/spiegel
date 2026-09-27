@@ -1,0 +1,55 @@
+{
+  "app": {
+    "title": "Spiegel",
+    "settings": "Configurações"
+  },
+  "devices": {
+    "heading": "Dispositivos",
+    "count_one": "{{count}} conectado",
+    "count_other": "{{count}} conectados",
+    "state": {
+      "ready": "Pronto",
+      "unauthorized": "Aguardando autorização",
+      "offline": "Offline",
+      "other": "Estado: {{state}}"
+    },
+    "hint": {
+      "unauthorized": "Desbloqueie o Dispositivo e toque em “Permitir” no aviso “Permitir depuração USB?”.",
+      "offline": "O Dispositivo não está respondendo. Desconecte e conecte o cabo de novo."
+    },
+    "serial": "Serial {{serial}}"
+  },
+  "empty": {
+    "title": "Nenhum Dispositivo conectado",
+    "lead": "Conecte um celular ou tablet Android pelo USB. Se ele não aparecer, confira:",
+    "debugging": "A depuração USB está ativada em Configurações › Opções do desenvolvedor.",
+    "cable": "O cabo transfere dados. Alguns cabos só carregam.",
+    "driver": "No Windows, o driver USB do fabricante está instalado.",
+    "unlocked": "O Dispositivo está desbloqueado na primeira conexão, para aceitar o aviso de autorização."
+  },
+  "adb": {
+    "starting": "Iniciando o adb…",
+    "reconnecting": "O servidor adb parou. Reconectando…",
+    "conflict": {
+      "title": "Outro servidor adb já está rodando",
+      "body": "Ele é da versão {{server}}, e o Spiegel usa a versão {{client}}. Os Dispositivos continuam aparecendo, mas as Sessões podem falhar.",
+      "restart": "Reiniciar com o adb do Spiegel",
+      "restartNote": "Outros programas que usam o adb perdem a conexão por alguns segundos.",
+      "useOther": "Usar outro adb"
+    },
+    "notFound": "O adb não foi encontrado em {{path}}.",
+    "failed": "O adb falhou: {{detail}}",
+    "openSettings": "Abrir configurações"
+  },
+  "settings": {
+    "title": "Configurações",
+    "adbHeading": "adb",
+    "adbLead": "O Spiegel traz o próprio adb. Use outro só se você já tem um adb instalado e quer que os dois programas compartilhem o mesmo servidor.",
+    "bundled": "adb embutido (recomendado)",
+    "custom": "Outro adb",
+    "customPlaceholder": "C:\\Android\\platform-tools\\adb.exe",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "saveError": "Não foi possível salvar: {{error}}"
+  }
+}
