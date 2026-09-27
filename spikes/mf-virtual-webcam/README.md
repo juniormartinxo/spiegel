@@ -4,6 +4,8 @@
 
 **Pergunta.** No Windows 11, um processo separado, em modo usuário, consegue enviar quadros para uma câmera virtual do Media Foundation (`MFCreateVirtualCamera`)? E ela aparece e funciona em aplicativos reais?
 
+**Em aberto:** nenhum teste verificou se **o outro participante de uma chamada recebe o vídeo** (Slack, Zoom e Meet só foram vistos na prévia local). O VCamSample registra esse problema no Teams. É o primeiro teste a fazer na implementação real.
+
 **Resposta curta.** Sim. A media source roda dentro do Frame Server (`svchost -k Camera`, LocalService, sessão 0) e lê quadros NV12 de uma seção `Global\` escrita pelo alimentador, em modo usuário. Do alimentador até o app a latência é de ~1 ms, e a câmera funciona no app Câmera, no Chrome e no Edge. O OBS, o Zoom, o Discord e o Teams ainda precisam ser testados à mão (roteiro abaixo).
 
 Ambiente: Windows 11 Pro 25H2 (build 26200), VS 2022 Build Tools 17.14, Windows SDK 10.0.26100, sem câmera física.
@@ -55,8 +57,8 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | OBS 32.1 "Dispositivo de captura de vídeo" | ✅ 1280×720 com formato "Qualquer", YUY2 e NV12, **também com a source oferecendo só NV12** (o YUY2 vem da ponte) | manual, pelo usuário |
 | Zoom 7.1.9 | ✅ prévia em Configurações → Vídeo (nome longo truncado: "Spiegel Spike Webcam (Câmera Virtual d...") | manual, screenshot do usuário |
 | Discord | ⚠️ não testável daqui: o Discord bloqueia vídeo no Brasil (chamada e prévia mostram "Câmera indisponível ... por determinação das autoridades brasileiras"). O desktop é Electron/Chromium e usa `getUserMedia` como o Chrome, que funcionou; então provavelmente funciona, mas isso é inferência | manual, screenshots do usuário |
-| Teams (e o outro lado da chamada) | ⏳ pendente. O Teams não está instalado; testar no teams.microsoft.com ou instalar | |
-| webcamtests.com | ⏳ pendente (manual) | |
+| Slack (círculo/huddle, Preferências → Áudio e vídeo) | ✅ prévia ao vivo (espelhada, como é normal na prévia local) | manual, screenshot do usuário |
+| Teams | ➖ não testado, por decisão (pouco usado pelo público-alvo) | |
 
 ### 2. Latência
 
