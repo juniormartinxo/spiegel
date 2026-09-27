@@ -8,9 +8,9 @@ pub mod protocol;
 pub mod server_link;
 
 use std::future::Future;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot, watch};
 
 use crate::device::Device;
 
@@ -34,6 +34,91 @@ pub trait AdbLink: Send + Sync + 'static {
 
     /// Começa a acompanhar os Dispositivos. A primeira lista chega logo.
     fn track_devices(&self) -> impl Future<Output = Result<DeviceTracker, AdbError>> + Send;
+
+    /// Copia um arquivo do computador para o Dispositivo (`adb push`).
+    fn push(&self, serial: &str, local: &Path, remote: &str) -> impl Future<Output = Result<(), AdbError>> + Send;
+
+    /// Túnel reverso: as conexões do Dispositivo em `device_socket` (ex.:
+    /// `localabstract:scrcpy_0123abcd`) chegam em `127.0.0.1:local_port`.
+    fn reverse(
+        &self,
+        serial: &str,
+        device_socket: &str,
+        local_port: u16,
+    ) -> impl Future<Output = Result<(), AdbError>> + Send;
+
+    fn remove_reverse(&self, serial: &str, device_socket: &str) -> impl Future<Output = Result<(), AdbError>> + Send;
+
+    /// Túnel direto: as conexões em `127.0.0.1:<porta>` chegam em
+    /// `device_socket` no Dispositivo. O adb escolhe a porta e a devolve.
+    fn forward(&self, serial: &str, device_socket: &str) -> impl Future<Output = Result<u16, AdbError>> + Send;
+
+    fn remove_forward(&self, serial: &str, local_port: u16) -> impl Future<Output = Result<(), AdbError>> + Send;
+
+    /// Roda um comando no shell do Dispositivo, sem esperar que ele termine.
+    fn spawn_shell(
+        &self,
+        serial: &str,
+        args: &[String],
+    ) -> impl Future<Output = Result<DeviceProcess, AdbError>> + Send;
+}
+
+/// Um processo rodando no Dispositivo, iniciado por [`AdbLink::spawn_shell`].
+/// Descartar o handle encerra o processo.
+pub struct DeviceProcess {
+    kill: Option<oneshot::Sender<()>>,
+    exit: watch::Receiver<Option<ProcessExit>>,
+}
+
+/// Como o processo terminou.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessExit {
+    /// A saída do processo (stdout e stderr juntos), para diagnóstico.
+    pub output: String,
+}
+
+/// O lado de quem implementa o [`AdbLink`]: recebe o pedido de encerramento
+/// e avisa quando o processo terminou.
+pub struct ProcessControl {
+    kill: oneshot::Receiver<()>,
+    exit: watch::Sender<Option<ProcessExit>>,
+}
+
+impl ProcessControl {
+    /// Resolve quando pedem para encerrar o processo ou quando o
+    /// [`DeviceProcess`] é descartado.
+    pub async fn kill_requested(&mut self) {
+        let _ = (&mut self.kill).await;
+    }
+
+    /// Avisa que o processo terminou, com a saída dele.
+    pub fn report_exit(self, output: String) {
+        let _ = self.exit.send(Some(ProcessExit { output }));
+    }
+}
+
+impl DeviceProcess {
+    pub fn new() -> (Self, ProcessControl) {
+        let (kill, kill_rx) = oneshot::channel();
+        let (exit_tx, exit) = watch::channel(None);
+        (Self { kill: Some(kill), exit }, ProcessControl { kill: kill_rx, exit: exit_tx })
+    }
+
+    /// Espera o processo terminar. Pode ser cancelado e chamado de novo.
+    pub async fn exited(&mut self) -> ProcessExit {
+        match self.exit.wait_for(Option::is_some).await {
+            Ok(exit) => exit.clone().unwrap_or_else(|| unreachable!("wait_for garante Some")),
+            // Quem implementa sumiu sem avisar: conta como terminado.
+            Err(_) => ProcessExit { output: String::new() },
+        }
+    }
+
+    /// Pede para encerrar o processo, sem esperar que ele termine.
+    pub fn kill(&mut self) {
+        if let Some(kill) = self.kill.take() {
+            let _ = kill.send(());
+        }
+    }
 }
 
 /// Erros do adb. As mensagens são técnicas, em inglês, e servem para log.

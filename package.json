@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "tauri": "tauri",
-    "fetch:adb": "node scripts/fetch-platform-tools.mjs"
+    "fetch:adb": "node scripts/fetch-platform-tools.mjs",
+    "fetch:server": "node scripts/fetch-scrcpy-server.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.0",

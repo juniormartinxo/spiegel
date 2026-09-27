@@ -17,22 +17,26 @@ O Spiegel é uma interface gráfica para o [scrcpy](https://github.com/Genymobil
 
 ## Estrutura e comandos
 
-- `crates/spiegel-core/`: o núcleo em Rust (adb, registro de Dispositivos e, em breve, protocolo do scrcpy e Sessões). Não depende do Tauri. A API pública dele é a costura de teste, e o adb falso fica em `testing` (feature `testing`).
+- `crates/spiegel-core/`: o núcleo em Rust (adb, registro de Dispositivos, protocolo do scrcpy e Sessões). Não depende do Tauri. A API pública dele é a costura de teste, e o adb falso (que também faz o papel do Dispositivo e do `scrcpy-server`) fica em `testing` (feature `testing`). O fluxo de vídeo real que ele reproduz fica em `crates/spiegel-core/fixtures/`.
 - `src-tauri/`: a casca Tauri 2, que só liga o núcleo à interface por comandos e eventos.
 - `src/`: a interface em React + TypeScript (Vite). Os textos ficam em `src/i18n/locales/` (pt-BR e inglês, com as mesmas chaves).
 - `scripts/fetch-platform-tools.mjs`: baixa o adb embutido para `src-tauri/resources/platform-tools/`, que fica fora do git.
+- `scripts/fetch-scrcpy-server.mjs`: baixa o `scrcpy-server` 4.1 embutido para `src-tauri/resources/scrcpy-server`, conferindo o SHA-256, também fora do git.
 
 Pré-requisitos: Rust (stable), Node 22+ e pnpm.
 
 ```sh
 pnpm install
 pnpm fetch:adb                  # uma vez: baixa o adb embutido (o build falha sem ele)
+pnpm fetch:server               # uma vez: baixa o scrcpy-server 4.1 embutido (o build falha sem ele)
 pnpm tauri dev                  # roda o aplicativo (Vite na porta 1420)
 cargo test --workspace          # testes do núcleo e da casca
 pnpm test                       # testes da interface (vitest)
 pnpm build                      # checagem de tipos + build da interface
 pnpm lint                       # oxlint
 cargo run -p spiegel-core --example watch_devices   # lista de Dispositivos ao vivo no terminal, com o adb real
+cargo run -p spiegel-core --example screen_session -- <serial>   # uma Sessão de Tela real, com os eventos no terminal
+cargo run -p spiegel-core --example record_screen -- <serial> <arquivo>   # grava um fluxo 4.1 real (como a fixture)
 ```
 
 O que já foi decidido (veja o `CONTEXT.md` para o vocabulário e `docs/adr/` para os motivos):

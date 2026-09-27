@@ -6,19 +6,31 @@ interface Props {
   devices: Device[];
   /** Seriais dos Dispositivos com uma Sessão rodando. */
   activeSessions: ReadonlySet<string>;
+  onStartSession(serial: string): void;
 }
 
-export function DeviceList({ devices, activeSessions }: Props) {
+export function DeviceList({ devices, activeSessions, onStartSession }: Props) {
   return (
     <ul className="device-list">
       {devices.map((device) => (
-        <DeviceCard key={device.serial} device={device} sessionActive={activeSessions.has(device.serial)} />
+        <DeviceCard
+          key={device.serial}
+          device={device}
+          sessionActive={activeSessions.has(device.serial)}
+          onStartSession={() => onStartSession(device.serial)}
+        />
       ))}
     </ul>
   );
 }
 
-function DeviceCard({ device, sessionActive }: { device: Device; sessionActive: boolean }) {
+interface CardProps {
+  device: Device;
+  sessionActive: boolean;
+  onStartSession(): void;
+}
+
+function DeviceCard({ device, sessionActive, onStartSession }: CardProps) {
   const { t } = useTranslation();
   const hint = stateHint(device.state);
 
@@ -38,6 +50,11 @@ function DeviceCard({ device, sessionActive }: { device: Device; sessionActive: 
         {device.model && <p className="muted mono">{t("devices.serial", { serial: device.serial })}</p>}
         {hint && <p className="device-hint">{t(hint)}</p>}
       </div>
+      {device.state.kind === "ready" && !sessionActive && (
+        <button type="button" className="button button-primary device-action" onClick={onStartSession}>
+          {t("session.start")}
+        </button>
+      )}
     </li>
   );
 }

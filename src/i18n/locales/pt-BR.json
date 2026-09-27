@@ -59,5 +59,31 @@
     "save": "Salvar",
     "cancel": "Cancelar",
     "saveError": "Não foi possível salvar: {{error}}"
+  },
+  "session": {
+    "start": "Iniciar Sessão",
+    "stop": "Parar",
+    "close": "Fechar",
+    "phase": {
+      "pushingServer": "Enviando o servidor ao Dispositivo…",
+      "connecting": "Conectando…",
+      "waitingVideo": "Aguardando a primeira imagem…"
+    },
+    "ended": {
+      "title": "A Sessão terminou",
+      "stopped": "A Sessão foi parada.",
+      "serverExited": "O servidor do scrcpy parou no Dispositivo antes de conectar. A saída dele pode explicar o motivo:",
+      "connectTimeout": "O Dispositivo não respondeu a tempo. Desbloqueie-o e tente de novo.",
+      "connectionFailed": "Não foi possível conectar ao Dispositivo ({{detail}}).",
+      "disconnected": "O Dispositivo foi desconectado ou parou de enviar vídeo.",
+      "videoDisabled": "O Dispositivo desligou o envio de vídeo.",
+      "videoConfigFailed": "O Dispositivo não conseguiu configurar o codificador de vídeo.",
+      "protocolError": "O Dispositivo enviou dados que o Spiegel não entende ({{detail}})."
+    },
+    "decoder": {
+      "unsupportedCodec": "Este computador não consegue decodificar o vídeo ({{codec}}).",
+      "failed": "Não foi possível decodificar o vídeo ({{detail}})."
+    },
+    "startFailed": "Não foi possível iniciar a Sessão ({{detail}})."
   }
 }
