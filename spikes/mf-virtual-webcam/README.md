@@ -4,7 +4,7 @@
 
 **Pergunta.** No Windows 11, um processo separado, em modo usuário, consegue enviar quadros para uma câmera virtual do Media Foundation (`MFCreateVirtualCamera`)? E ela aparece e funciona em aplicativos reais?
 
-**Em aberto:** nenhum teste verificou se **o outro participante de uma chamada recebe o vídeo** (Slack, Zoom e Meet só foram vistos na visualização local). O VCamSample registra esse problema no Teams. É o primeiro teste a fazer na implementação real.
+**Lado remoto confirmado:** num Google Meet com 2 participantes, o outro participante recebe o vídeo ao vivo e sem espelhamento, com ~91 ms do alimentador até a tela dele (via servidores do Meet). O problema do Teams registrado pelo VCamSample não foi reproduzido porque o Teams não foi testado.
 
 **Resposta curta.** Sim. A media source roda dentro do Frame Server (`svchost -k Camera`, LocalService, sessão 0) e lê quadros NV12 de uma seção `Global\` escrita pelo alimentador, em modo usuário. Do alimentador até o app a latência é de ~1 ms, e a câmera funciona no app Câmera, no Chrome e no Edge. O OBS, o Zoom, o Discord e o Teams ainda precisam ser testados à mão (roteiro abaixo).
 
@@ -58,7 +58,7 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | Zoom 7.1.9 | ✅ prévia em Configurações → Vídeo (nome longo truncado: "Spiegel Spike Webcam (Câmera Virtual d...") | manual, screenshot do usuário |
 | Discord | ⚠️ não testável daqui: o Discord bloqueia vídeo no Brasil (chamada e prévia mostram "Câmera indisponível ... por determinação das autoridades brasileiras"). O desktop é Electron/Chromium e usa `getUserMedia` como o Chrome, que funcionou; então provavelmente funciona, mas isso é inferência | manual, screenshots do usuário |
 | Slack (círculo/huddle, Preferências → Áudio e vídeo) | ✅ prévia ao vivo (espelhada, como é normal na prévia local) | manual, screenshot do usuário |
-| Google Meet (reunião real, navegador) | ✅ vídeo ao vivo na reunião (visualização local, espelhada; só 1 participante) | manual, screenshot do usuário |
+| Google Meet (reunião real, navegador) | ✅ visualização local e **outro participante recebe o vídeo** (sem espelhamento) | manual, screenshot do usuário com 2 participantes |
 | Teams | ➖ não testado, por decisão (pouco usado pelo público-alvo) | |
 
 ### 2. Latência
@@ -72,6 +72,7 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | alimentador → quadro apresentado no Edge (idem) | 33 ms | 19–36 ms |
 | alimentador → tela no app Câmera (screenshot com a janela de relógio ao lado) | ~31 ms | 17–49 ms (5 amostras) |
 | alimentador → prévia de Configurações do Zoom (screenshot) | ~21 ms | 1 amostra |
+| alimentador → tela do **outro participante** no Google Meet | ~91 ms | 1 amostra; visualização local no mesmo instante: ~24 ms |
 | alimentador → OBS (screenshots) | 6–25 ms | 7 amostras em NV12/YUY2/Any; a prévia da janela de propriedades às vezes mostra um quadro atrás (~43 ms) |
 
 O transporte entre processos custa ~1 ms. O resto vem da renderização do app e da idade do quadro (até 33 ms a 30 fps). O tempo até o primeiro quadro depois de abrir a câmera é de ~15–45 ms (`ActivateObject` ~30 ms).
@@ -95,7 +96,7 @@ O transporte entre processos custa ~1 ms. O resto vem da renderização do app e
 9. **Processo morto não remove a câmera de sessão na hora.** Depois de um `taskkill` no `vcamctl add --lifetime session`, o dispositivo continuou listado. Ao recriá-lo, o symlink se repetiu (mesmo ID de dispositivo), então não duplicou.
 10. **Carimbo e croma.** Um detalhe só do teste: o carimbo precisa de croma neutro por baixo, senão a conversão YUV→RGB do navegador o corrompe.
 11. **Um app por vez.** Com um consumidor aberto (OBS, ou um `vcamctl probe`), um segundo app simultâneo falha no `ReadSample` com `0xC00D3704` (`MF_E_HW_MFT_FAILED_START_STREAMING`), mesmo sem chamar `SetCurrentMediaType`. O Frame Server nem chega a chamar a source para o segundo cliente. **A outra câmera virtual MF desta máquina ("JM-S21") se comporta igual**, então é da plataforma, não da DLL, apesar de `MF_DEVICESTREAM_FRAMESERVER_SHARED=1`. Consequência para a Spiegel: a Virtual webcam serve um app de cada vez (não dá OBS e Zoom juntos). Não testei o modo `SharedReadOnly` do `MediaCapture` (WinRT).
-12. **Teams, o outro lado da chamada.** O VCamSample registra que a prévia aparece mas o outro participante não recebe vídeo. Ainda não verificado aqui.
+12. **Teams, o outro lado da chamada.** O VCamSample registra que a prévia aparece mas o outro participante não recebe vídeo. Não foi testado aqui. No Google Meet o outro lado recebe normalmente.
 
 ## Roteiro dos testes manuais
 
