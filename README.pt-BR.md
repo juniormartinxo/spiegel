@@ -58,8 +58,8 @@ Os motivos de cada escolha estão registrados em [`docs/adr/`](docs/adr) (em ing
 - [x] **Design**: modelo de domínio e decisões de arquitetura
 - [x] **Protótipo da webcam virtual (Windows 11)**: cerca de 1 ms do Spiegel até o aplicativo que usa a câmera. Funciona no OBS, Zoom, Google Meet (inclusive do outro lado da chamada), Slack, Chrome, Edge e no aplicativo Câmera do Windows.
 - [ ] **Tela + controle remoto por USB**: o celular dentro da janela do Spiegel, comandado por teclado e mouse
-- [ ] **Câmera do celular como webcam**: traseira ou frontal, resolução, fps, zoom, lanterna
-- [ ] **Perfis, pareamento por QR code, gravação, áudio, instalador, bandeja do sistema**
+- [ ] **Câmera do celular, gravada e como webcam**: grave direto no disco do computador, sem recompressão (até 4K, se o celular suportar), ou alimente a webcam virtual em 720p/1080p; câmera traseira ou frontal, fps, zoom, lanterna
+- [ ] **Perfis, pareamento por QR code, áudio, instalador, bandeja do sistema**
 - [ ] **Idiomas**: inglês e português primeiro, aberto a outros
 - [ ] **Linux e macOS**
 

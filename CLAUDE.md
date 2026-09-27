@@ -12,7 +12,8 @@ Decided so far (read `CONTEXT.md` for the vocabulary and `docs/adr/` for the rea
 - Stack: Tauri 2 with a Rust core (adb, protocol, Sessions, FFmpeg decoding for the Virtual webcam) and a TypeScript web UI that decodes the preview with WebCodecs. Raw frames never cross the Tauri IPC (ADR 0003).
 - The Virtual webcam is a C++ COM DLL: a Media Foundation virtual camera on Windows 11 and a DirectShow filter on Windows 10 (ADR 0002).
 - Windows first, portable to Linux and macOS. UI in English and Portuguese, with strings in translation files open to more languages.
-- Delivery order: (1) throwaway Media Foundation Virtual webcam prototype, (2) Screen + Remote control over USB, (3) Camera Video source feeding the Virtual webcam, (4) Profiles, Pairing, recording, audio, i18n, installer, tray.
+- Delivery order: (1) throwaway Media Foundation Virtual webcam prototype (done, ADR 0004), (2) Screen + Remote control over USB, (3) Camera Video source feeding a Recording and the Virtual webcam, (4) Profiles, Pairing, audio, i18n, installer, tray.
+- The Virtual webcam advertises fixed formats, independent of the Device: 720p30, 1080p30 and 1080p60, plus 2160p30 behind an off-by-default setting, all NV12 16:9. The Rust core adapts each Session frame to the format the consuming app picked: it crops to 16:9 by default, with letterboxing as a Profile option, and webcam Profiles ask the Device for 16:9 (`--camera-ar=16:9`) so cropping is rarely needed. For 4K YouTube footage the recommended path is a Recording, not the Virtual webcam.
 
 ## scrcpy reference
 

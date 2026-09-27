@@ -58,8 +58,8 @@ The reasoning behind each choice is recorded in [`docs/adr/`](docs/adr).
 - [x] **Design**: domain model and architecture decisions
 - [x] **Virtual webcam prototype (Windows 11)**: ~1 ms from Spiegel to the consuming app. It works in OBS, Zoom, Google Meet (including the remote side of a call), Slack, Chrome, Edge and the Windows Camera app.
 - [ ] **Screen + remote control over USB**: the phone inside Spiegel's window, driven by keyboard and mouse
-- [ ] **Phone camera as a webcam**: rear or front camera, resolution, fps, zoom, torch
-- [ ] **Profiles, QR pairing, recording, audio, installer, system tray**
+- [ ] **Phone camera, recorded and as a webcam**: record straight to the computer's disk with no re-encoding (up to 4K when the phone can), or feed the virtual webcam at 720p/1080p; rear or front camera, fps, zoom, torch
+- [ ] **Profiles, QR pairing, audio, installer, system tray**
 - [ ] **Languages**: English and Portuguese first, open to more
 - [ ] **Linux and macOS**
 

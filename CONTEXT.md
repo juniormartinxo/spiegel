@@ -32,6 +32,10 @@ _Avoid_: input, feed
 A camera device on the computer, fed by a Session whose Video source is a Camera, that other apps (OBS, Zoom, Meet, browsers) can select like any physical webcam. There is exactly one, always present under the same name once installed, fed by at most one Session at a time and used by at most one app at a time; with none feeding it, it shows a standby image.
 _Avoid_: webcam mode, cam, camera output
 
+**Recording**:
+A file on the computer's disk holding a Session's video and audio exactly as the Device encoded them, with nothing written to the Device's own storage and no re-encoding. It is the highest-quality way to capture a Camera, above anything recorded through the Virtual webcam.
+_Avoid_: capture, clip, export
+
 ### Input
 
 **Remote control**:
