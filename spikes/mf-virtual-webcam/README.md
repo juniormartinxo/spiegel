@@ -4,7 +4,7 @@
 
 **Pergunta.** No Windows 11, um processo separado, em modo usuário, consegue enviar quadros para uma câmera virtual do Media Foundation (`MFCreateVirtualCamera`)? E ela aparece e funciona em aplicativos reais?
 
-**Em aberto:** nenhum teste verificou se **o outro participante de uma chamada recebe o vídeo** (Slack, Zoom e Meet só foram vistos na prévia local). O VCamSample registra esse problema no Teams. É o primeiro teste a fazer na implementação real.
+**Em aberto:** nenhum teste verificou se **o outro participante de uma chamada recebe o vídeo** (Slack e Zoom só foram vistos na prévia local). O VCamSample registra esse problema no Teams. É o primeiro teste a fazer na implementação real.
 
 **Resposta curta.** Sim. A media source roda dentro do Frame Server (`svchost -k Camera`, LocalService, sessão 0) e lê quadros NV12 de uma seção `Global\` escrita pelo alimentador, em modo usuário. Do alimentador até o app a latência é de ~1 ms, e a câmera funciona no app Câmera, no Chrome e no Edge. O OBS, o Zoom, o Discord e o Teams ainda precisam ser testados à mão (roteiro abaixo).
 
