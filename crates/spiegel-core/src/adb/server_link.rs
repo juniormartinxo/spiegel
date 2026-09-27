@@ -2,19 +2,20 @@
 //! 5037) e usa o binário do adb só para descobrir a própria versão e iniciar
 //! o servidor.
 
+use std::ffi::OsStr;
 use std::io::ErrorKind;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::net::TcpStream;
-use tokio::process::Command;
+use tokio::process::{ChildStderr, ChildStdout, Command};
 use tokio::sync::mpsc;
 
 use super::protocol::{parse_hex, read_block, read_status, send_request};
-use super::{AdbError, AdbLink, DeviceTracker};
+use super::{AdbError, AdbLink, DeviceProcess, DeviceTracker};
 use crate::device::parse_device_list;
 
 pub const DEFAULT_SERVER_ADDR: SocketAddr = SocketAddr::V4(std::net::SocketAddrV4::new(
@@ -34,6 +35,32 @@ impl AdbServerLink {
 
     pub fn with_server_addr(adb_path: PathBuf, server_addr: SocketAddr) -> Self {
         Self { adb_path, server_addr }
+    }
+
+    /// Um comando do adb para um Dispositivo, no mesmo servidor que o link usa.
+    fn device_command(&self, serial: &str) -> Result<Command, AdbError> {
+        let mut command = self.command()?;
+        command.arg("-P").arg(self.server_addr.port().to_string()).arg("-s").arg(serial);
+        Ok(command)
+    }
+
+    /// Roda um comando curto do adb e devolve o stdout, ou o erro com o stderr.
+    async fn run_device(&self, serial: &str, args: &[&OsStr]) -> Result<String, AdbError> {
+        let output = self
+            .device_command(serial)?
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .await
+            .map_err(AdbError::Spawn)?;
+        if output.status.success() {
+            Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let command = args.iter().map(|arg| arg.to_string_lossy()).collect::<Vec<_>>().join(" ");
+            Err(AdbError::CommandFailed(format!("adb {command}: {}", stderr.trim())))
+        }
     }
 
     fn command(&self) -> Result<Command, AdbError> {
@@ -151,7 +178,78 @@ impl AdbLink for AdbServerLink {
         });
         Ok(rx)
     }
+
+    async fn push(&self, serial: &str, local: &Path, remote: &str) -> Result<(), AdbError> {
+        self.run_device(serial, &["push".as_ref(), local.as_os_str(), remote.as_ref()]).await.map(drop)
+    }
+
+    async fn reverse(&self, serial: &str, device_socket: &str, local_port: u16) -> Result<(), AdbError> {
+        let local = format!("tcp:{local_port}");
+        self.run_device(serial, &["reverse".as_ref(), device_socket.as_ref(), local.as_ref()]).await.map(drop)
+    }
+
+    async fn remove_reverse(&self, serial: &str, device_socket: &str) -> Result<(), AdbError> {
+        self.run_device(serial, &["reverse".as_ref(), "--remove".as_ref(), device_socket.as_ref()]).await.map(drop)
+    }
+
+    async fn forward(&self, serial: &str, device_socket: &str) -> Result<u16, AdbError> {
+        // Com `tcp:0`, o adb escolhe uma porta livre e a imprime.
+        let stdout = self.run_device(serial, &["forward".as_ref(), "tcp:0".as_ref(), device_socket.as_ref()]).await?;
+        stdout
+            .trim()
+            .parse()
+            .map_err(|_| AdbError::UnexpectedOutput(format!("adb forward: {}", stdout.trim())))
+    }
+
+    async fn remove_forward(&self, serial: &str, local_port: u16) -> Result<(), AdbError> {
+        let local = format!("tcp:{local_port}");
+        self.run_device(serial, &["forward".as_ref(), "--remove".as_ref(), local.as_ref()]).await.map(drop)
+    }
+
+    async fn spawn_shell(&self, serial: &str, args: &[String]) -> Result<DeviceProcess, AdbError> {
+        let mut child = self
+            .device_command(serial)?
+            .arg("shell")
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(AdbError::Spawn)?;
+        let (process, mut control) = DeviceProcess::new();
+        let output = tokio::spawn(collect_output(child.stdout.take(), child.stderr.take()));
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = child.wait() => {}
+                () = control.kill_requested() => {
+                    let _ = child.kill().await;
+                }
+            }
+            // Um processo herdeiro dos pipes (ex.: um servidor adb iniciado
+            // pelo comando) poderia segurar a saída aberta para sempre.
+            let output = tokio::time::timeout(OUTPUT_GRACE, output).await;
+            control.exited(output.ok().and_then(Result::ok).unwrap_or_default());
+        });
+        Ok(process)
+    }
 }
+
+/// Junta a saída do processo, até um limite, para diagnosticar falhas.
+async fn collect_output(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> String {
+    async fn read_capped(reader: Option<impl AsyncRead + Unpin>) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        if let Some(reader) = reader {
+            let _ = reader.take(OUTPUT_LIMIT).read_to_end(&mut bytes).await;
+        }
+        bytes
+    }
+    let (out, err) = tokio::join!(read_capped(stdout), read_capped(stderr));
+    let mut text = String::from_utf8_lossy(&out).into_owned();
+    text.push_str(&String::from_utf8_lossy(&err));
+    text
+}
+
+const OUTPUT_LIMIT: u64 = 16 * 1024;
+const OUTPUT_GRACE: Duration = Duration::from_secs(1);
 
 impl AdbServerLink {
     /// Espera o servidor antigo largar a porta. Sem isso, a próxima conexão

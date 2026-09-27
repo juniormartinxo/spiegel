@@ -1,7 +1,9 @@
 // Tipos e chamadas do núcleo (crate spiegel-core), espelhando o que a casca
 // Tauri serializa. Mantenha em sincronia com os tipos `Serialize` do Rust.
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+
+import { readPacket, type VideoPacket } from "./video/packets";
 
 export type DeviceState =
   | { kind: "ready" }
@@ -60,3 +62,42 @@ export const restartAdbServer = () => invoke<void>("restart_adb_server");
 
 /** Nome para exibir: o modelo, ou o serial quando o adb não informa o modelo. */
 export const deviceName = (device: Device) => device.model ?? device.serial;
+
+// Sessões
+
+export type StartupPhase = "pushingServer" | "connecting";
+
+export type VideoCodec = "h264" | "h265" | "av1" | "vp8" | "vp9";
+
+/** Por que a Sessão terminou (`EndReason` no núcleo). */
+export type EndReason =
+  | { kind: "stopped" }
+  | { kind: "adbFailed"; problem: AdbProblem }
+  | { kind: "serverExited"; output: string }
+  | { kind: "connectTimeout" }
+  | { kind: "connectionFailed"; detail: string }
+  | { kind: "disconnected" }
+  | { kind: "protocolError"; detail: string };
+
+/** Os eventos de Sessão em JSON. Os pacotes de vídeo chegam à parte, em binário. */
+export type SessionEvent =
+  | { kind: "phase"; phase: StartupPhase }
+  | { kind: "connected"; deviceName: string }
+  | { kind: "videoConfigured"; codec: VideoCodec; width: number; height: number }
+  | { kind: "ended"; reason: EndReason };
+
+/** Inicia uma Sessão de Tela e resolve com o id dela. Os eventos e os pacotes
+ *  chegam na ordem em que o núcleo os emite, até o `ended`. */
+export function startSession(
+  serial: string,
+  onEvent: (event: SessionEvent) => void,
+  onPacket: (packet: VideoPacket) => void,
+): Promise<number> {
+  const channel = new Channel<SessionEvent | ArrayBuffer>((message) =>
+    message instanceof ArrayBuffer ? onPacket(readPacket(message)) : onEvent(message),
+  );
+  return invoke<number>("start_session", { serial, onEvent: channel });
+}
+
+/** Para a Sessão. Resolve depois da desmontagem no Dispositivo. */
+export const stopSession = (id: number) => invoke<void>("stop_session", { id });

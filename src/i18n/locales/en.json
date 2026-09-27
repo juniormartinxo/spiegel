@@ -59,5 +59,28 @@
     "save": "Save",
     "cancel": "Cancel",
     "saveError": "Couldn't save: {{error}}"
+  },
+  "session": {
+    "start": "Start Session",
+    "stop": "Stop",
+    "close": "Close",
+    "phase": {
+      "pushingServer": "Sending the server to the Device…",
+      "connecting": "Connecting…",
+      "waitingVideo": "Waiting for the first image…"
+    },
+    "ended": {
+      "title": "The Session ended",
+      "stopped": "The Session was stopped.",
+      "serverExited": "The scrcpy server stopped on the Device before connecting. Its output may explain why:",
+      "connectTimeout": "The Device did not respond in time. Unlock it and try again.",
+      "connectionFailed": "Could not connect to the Device ({{detail}}).",
+      "disconnected": "The Device was disconnected or stopped sending video.",
+      "protocolError": "The Device sent data Spiegel does not understand ({{detail}})."
+    },
+    "decoder": {
+      "unsupportedCodec": "This computer cannot decode the video ({{codec}}).",
+      "failed": "Could not decode the video ({{detail}})."
+    }
   }
 }
