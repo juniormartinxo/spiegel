@@ -265,11 +265,12 @@ async fn stopping_during_the_forward_command_still_removes_the_tunnel() {
     let (session, mut events) = Session::start(adb.clone(), SERIAL, options());
     assert_eq!(next(&mut events).await, SessionEvent::Phase { phase: StartupPhase::PushingServer });
     assert_eq!(next(&mut events).await, SessionEvent::Phase { phase: StartupPhase::Connecting });
+    // O adb já criou o túnel, mas ainda não respondeu.
+    wait_until("the forward command starts", || adb.open_tunnels().len() == 1).await;
 
     session.stop().await;
 
     assert_eq!(end_reason(&mut events).await, EndReason::Stopped);
     // O `adb forward` termina depois da parada, e o túnel dele é desfeito.
-    tokio::time::sleep(Duration::from_millis(300)).await;
-    assert!(adb.open_tunnels().is_empty());
+    wait_until("the late forward tunnel is removed", || adb.open_tunnels().is_empty()).await;
 }
