@@ -16,7 +16,9 @@ type Status =
   | { kind: "starting"; phase: StartupPhase | "waitingVideo" }
   | { kind: "live" }
   | { kind: "ended"; reason: EndReason }
-  | { kind: "decoderProblem"; problem: DecoderProblem };
+  | { kind: "decoderProblem"; problem: DecoderProblem }
+  /** O pedido para iniciar nem chegou ao núcleo. */
+  | { kind: "startFailed"; detail: string };
 
 /** A visualização de uma Sessão de Tela: inicia ao montar, para ao desmontar. */
 export function SessionView({ serial, fallbackName, onClose }: Props) {
@@ -27,13 +29,19 @@ export function SessionView({ serial, fallbackName, onClose }: Props) {
 
   useEffect(() => {
     let id: number | null = null;
-    let unmounted = false;
+    // Parar pode ser pedido antes de o núcleo devolver o id da Sessão (os
+    // eventos chegam antes da resposta); nesse caso, para assim que ela vier.
+    let stopRequested = false;
+    const stop = () => {
+      stopRequested = true;
+      if (id !== null) void stopSession(id);
+    };
     const decoder = new ScreenDecoder(canvas.current!, {
       onFirstFrame: () => setStatus((current) => (current.kind === "starting" ? { kind: "live" } : current)),
       onProblem: (problem) => {
         setStatus({ kind: "decoderProblem", problem });
         // Sem imagem, não há por que manter o servidor rodando no Dispositivo.
-        if (id !== null) void stopSession(id);
+        stop();
       },
     });
 
@@ -61,14 +69,13 @@ export function SessionView({ serial, fallbackName, onClose }: Props) {
     startSession(serial, onEvent, (packet) => decoder.push(packet)).then(
       (started) => {
         id = started;
-        if (unmounted) void stopSession(started);
+        if (stopRequested) void stopSession(started);
       },
-      (error) => setStatus({ kind: "ended", reason: { kind: "connectionFailed", detail: String(error) } }),
+      (error) => setStatus({ kind: "startFailed", detail: String(error) }),
     );
     return () => {
-      unmounted = true;
       decoder.close();
-      if (id !== null) void stopSession(id);
+      stop();
     };
   }, [serial]);
 
@@ -106,6 +113,8 @@ function StatusMessage({ status }: { status: Status }) {
       );
     case "live":
       return null;
+    case "startFailed":
+      return <p className="session-problem">{t("session.startFailed", status)}</p>;
     case "decoderProblem":
       return <p className="session-problem">{t(`session.decoder.${status.problem.kind}`, status.problem)}</p>;
     case "ended":

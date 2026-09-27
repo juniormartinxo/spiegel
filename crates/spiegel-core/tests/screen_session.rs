@@ -229,3 +229,47 @@ async fn a_server_that_never_connects_times_out() {
     assert!(adb.open_tunnels().is_empty());
     assert_eq!(adb.running_servers(), 0);
 }
+
+async fn end_reason_for_stream(video: Vec<u8>) -> EndReason {
+    let adb = FakeAdb::new(41).with_running_server(41);
+    adb.set_scrcpy_server(FakeScrcpyServer { video, ..Default::default() });
+    let (_session, mut events) = Session::start(adb, SERIAL, options());
+    end_reason(&mut events).await
+}
+
+#[tokio::test]
+async fn a_device_that_disables_the_video_says_so() {
+    // Codec id 0: o Dispositivo desligou o fluxo (demuxer.c do scrcpy 4.1).
+    assert_eq!(end_reason_for_stream(vec![0, 0, 0, 0]).await, EndReason::VideoDisabled);
+}
+
+#[tokio::test]
+async fn a_device_that_cannot_configure_the_encoder_says_so() {
+    // Codec id 1: erro de configuração do fluxo no Dispositivo.
+    assert_eq!(end_reason_for_stream(vec![0, 0, 0, 1]).await, EndReason::VideoConfigFailed);
+}
+
+#[tokio::test]
+async fn an_empty_packet_is_a_protocol_error() {
+    let mut video = b"h264".to_vec();
+    video.extend([0x80, 0, 0, 0, 0, 0, 0x02, 0xd0, 0, 0, 0x05, 0x00]);
+    video.extend([0x00, 0, 0, 0, 0, 0, 0x01, 0x24, 0, 0, 0, 0]);
+    assert!(matches!(end_reason_for_stream(video).await, EndReason::ProtocolError { .. }));
+}
+
+#[tokio::test]
+async fn stopping_during_the_forward_command_still_removes_the_tunnel() {
+    let adb = FakeAdb::new(41).with_running_server(41);
+    adb.fail_reverse("more than one device/emulator");
+    adb.delay_forward(Duration::from_millis(200));
+    let (session, mut events) = Session::start(adb.clone(), SERIAL, options());
+    assert_eq!(next(&mut events).await, SessionEvent::Phase { phase: StartupPhase::PushingServer });
+    assert_eq!(next(&mut events).await, SessionEvent::Phase { phase: StartupPhase::Connecting });
+
+    session.stop().await;
+
+    assert_eq!(end_reason(&mut events).await, EndReason::Stopped);
+    // O `adb forward` termina depois da parada, e o túnel dele é desfeito.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(adb.open_tunnels().is_empty());
+}

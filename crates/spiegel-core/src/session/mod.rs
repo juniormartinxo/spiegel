@@ -12,6 +12,7 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::net::Ipv4Addr;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -101,6 +102,10 @@ pub enum EndReason {
     ConnectionFailed { detail: String },
     /// O fluxo de vídeo fechou: o Dispositivo foi desconectado ou o servidor parou.
     Disconnected,
+    /// O Dispositivo desligou o fluxo de vídeo (codec id 0).
+    VideoDisabled,
+    /// O Dispositivo não conseguiu configurar o codificador de vídeo (codec id 1).
+    VideoConfigFailed,
     /// O servidor enviou algo que não segue o protocolo 4.1.
     ProtocolError { detail: String },
 }
@@ -186,31 +191,49 @@ impl<L: AdbLink> Runner<L> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.map_err(connection_failed)?;
         let port = listener.local_addr().map_err(connection_failed)?.port();
 
-        // Registrado antes do `await`: se a Sessão for parada no meio do
-        // comando, a desmontagem ainda tenta remover o túnel.
-        self.tunnel = Some(Tunnel::Reverse(device_socket.clone()));
-        if self.link.reverse(&self.serial, &device_socket, port).await.is_ok() {
-            self.start_server(scid, false).await?;
-            self.until_connected(async move {
-                let (mut socket, _) = listener.accept().await?;
-                let name = read_device_name(&mut socket).await?;
-                Ok((socket, name))
-            })
-            .await
-        } else {
-            // O reverso falha, por exemplo, em algumas conexões por rede.
-            drop(listener);
-            self.tunnel = None;
-            let port = self.link.forward(&self.serial, &device_socket).await.map_err(adb_failed)?;
-            self.tunnel = Some(Tunnel::Forward(port));
-            self.start_server(scid, true).await?;
-            self.until_connected(async move {
-                let mut socket = connect_forward(port).await;
-                let name = read_device_name(&mut socket).await?;
-                Ok((socket, name))
-            })
-            .await
-        }
+        let video: Pin<Box<dyn Future<Output = std::io::Result<TcpStream>> + Send>> =
+            if self.open_reverse(&device_socket, port).await.is_ok() {
+                self.tunnel = Some(Tunnel::Reverse(device_socket));
+                Box::pin(async move { listener.accept().await.map(|(socket, _)| socket) })
+            } else {
+                // O reverso falha, por exemplo, em algumas conexões por rede.
+                drop(listener);
+                let port = self.open_forward(&device_socket).await.map_err(adb_failed)?;
+                self.tunnel = Some(Tunnel::Forward(port));
+                Box::pin(async move { Ok(connect_forward(port).await) })
+            };
+
+        self.start_server(scid, matches!(self.tunnel, Some(Tunnel::Forward(_)))).await?;
+        self.until_connected(async move {
+            let mut socket = video.await?;
+            let name = read_device_name(&mut socket).await?;
+            Ok((socket, name))
+        })
+        .await
+    }
+
+    async fn open_reverse(&self, device_socket: &str, local_port: u16) -> Result<(), AdbError> {
+        let (link, serial, socket) = (self.link.clone(), self.serial.clone(), device_socket.to_owned());
+        let open = {
+            let (link, serial, socket) = (link.clone(), serial.clone(), socket.clone());
+            async move { link.reverse(&serial, &socket, local_port).await }
+        };
+        run_tunnel_command(open, move |()| async move {
+            let _ = link.remove_reverse(&serial, &socket).await;
+        })
+        .await
+    }
+
+    async fn open_forward(&self, device_socket: &str) -> Result<u16, AdbError> {
+        let (link, serial, socket) = (self.link.clone(), self.serial.clone(), device_socket.to_owned());
+        let open = {
+            let (link, serial) = (link.clone(), serial.clone());
+            async move { link.forward(&serial, &socket).await }
+        };
+        run_tunnel_command(open, move |port| async move {
+            let _ = link.remove_forward(&serial, port).await;
+        })
+        .await
     }
 
     async fn start_server(&mut self, scid: u32, tunnel_forward: bool) -> Result<(), EndReason> {
@@ -275,6 +298,28 @@ impl<L: AdbLink> Runner<L> {
             }
         }
     }
+}
+
+/// Roda um comando que abre um túnel até o fim, numa task à parte. Se a
+/// Sessão for parada no meio, o adb ainda pode concluir o comando depois da
+/// desmontagem; nesse caso, a task desfaz o túnel com `undo`.
+async fn run_tunnel_command<T, Undo>(
+    open: impl Future<Output = Result<T, AdbError>> + Send + 'static,
+    undo: impl FnOnce(T) -> Undo + Send + 'static,
+) -> Result<T, AdbError>
+where
+    T: Send + 'static,
+    Undo: Future<Output = ()> + Send,
+{
+    let (result_tx, result) = oneshot::channel();
+    tokio::spawn(async move {
+        if let Err(Ok(opened)) = result_tx.send(open.await) {
+            undo(opened).await;
+        }
+    });
+    result
+        .await
+        .unwrap_or_else(|_| Err(AdbError::CommandFailed("tunnel command was interrupted".into())))
 }
 
 /// Os argumentos do `adb shell` que iniciam o servidor. Só o que difere dos

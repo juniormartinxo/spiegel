@@ -227,7 +227,7 @@ impl AdbLink for AdbServerLink {
             // Um processo herdeiro dos pipes (ex.: um servidor adb iniciado
             // pelo comando) poderia segurar a saída aberta para sempre.
             let output = tokio::time::timeout(OUTPUT_GRACE, output).await;
-            control.exited(output.ok().and_then(Result::ok).unwrap_or_default());
+            control.report_exit(output.ok().and_then(Result::ok).unwrap_or_default());
         });
         Ok(process)
     }
@@ -237,8 +237,11 @@ impl AdbLink for AdbServerLink {
 async fn collect_output(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> String {
     async fn read_capped(reader: Option<impl AsyncRead + Unpin>) -> Vec<u8> {
         let mut bytes = Vec::new();
-        if let Some(reader) = reader {
-            let _ = reader.take(OUTPUT_LIMIT).read_to_end(&mut bytes).await;
+        if let Some(mut reader) = reader {
+            let _ = (&mut reader).take(OUTPUT_LIMIT).read_to_end(&mut bytes).await;
+            // Continua lendo até o fim, só descartando: fechar o pipe antes
+            // faria o próximo log do processo falhar e poderia derrubá-lo.
+            let _ = tokio::io::copy(&mut reader, &mut tokio::io::sink()).await;
         }
         bytes
     }

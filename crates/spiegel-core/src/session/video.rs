@@ -64,8 +64,15 @@ where
     let Ok(codec_id) = stream.read_u32().await else {
         return EndReason::Disconnected;
     };
-    let Some(codec) = VideoCodec::from_id(codec_id) else {
-        return protocol_error(format!("unknown video codec id {codec_id:#010x}"));
+    // Os ids 0 e 1 não são codecs: o Dispositivo avisa que não vai enviar
+    // vídeo (demuxer.c do scrcpy 4.1).
+    let codec = match codec_id {
+        0 => return EndReason::VideoDisabled,
+        1 => return EndReason::VideoConfigFailed,
+        id => match VideoCodec::from_id(id) {
+            Some(codec) => codec,
+            None => return protocol_error(format!("unknown video codec id {id:#010x}")),
+        },
     };
 
     let mut header = [0u8; 12];
@@ -83,7 +90,8 @@ where
             SessionEvent::VideoConfigured { codec, width, height: tail }
         } else {
             let size = tail as usize;
-            if size > MAX_PACKET_SIZE {
+            // Como no scrcpy, um pacote vazio também é inválido.
+            if size == 0 || size > MAX_PACKET_SIZE {
                 return protocol_error(format!("video packet of {size} bytes"));
             }
             let mut data = vec![0u8; size];

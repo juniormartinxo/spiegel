@@ -91,7 +91,8 @@ impl ProcessControl {
         let _ = (&mut self.kill).await;
     }
 
-    pub fn exited(self, output: String) {
+    /// Avisa que o processo terminou, com a saída dele.
+    pub fn report_exit(self, output: String) {
         let _ = self.exit.send(Some(ProcessExit { output }));
     }
 }

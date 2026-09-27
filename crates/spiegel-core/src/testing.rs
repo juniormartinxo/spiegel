@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -40,6 +41,7 @@ struct State {
     scrcpy_server: FakeScrcpyServer,
     push_failure: Option<String>,
     reverse_failure: Option<String>,
+    forward_delay: Option<Duration>,
     pushes: Vec<Push>,
     /// Túneis reversos abertos: socket no Dispositivo → porta local.
     reverses: HashMap<String, u16>,
@@ -115,6 +117,7 @@ impl FakeAdb {
                 scrcpy_server: FakeScrcpyServer::default(),
                 push_failure: None,
                 reverse_failure: None,
+                forward_delay: None,
                 pushes: vec![],
                 reverses: HashMap::new(),
                 forwards: HashMap::new(),
@@ -189,6 +192,11 @@ impl FakeAdb {
     /// O `adb reverse` falha, como numa conexão por `adb connect` antiga.
     pub fn fail_reverse(&self, detail: &str) {
         self.state().reverse_failure = Some(detail.to_owned());
+    }
+
+    /// O `adb forward` demora, para testar uma parada no meio dele.
+    pub fn delay_forward(&self, delay: Duration) {
+        self.state().forward_delay = Some(delay);
     }
 
     pub fn pushes(&self) -> Vec<Push> {
@@ -283,11 +291,20 @@ impl AdbLink for FakeAdb {
     async fn forward(&self, _serial: &str, device_socket: &str) -> Result<u16, AdbError> {
         // O lado do Dispositivo é um socket de verdade na rede local, que o
         // servidor falso aceita quando inicia.
-        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
-        let mut state = self.state();
-        state.forwards.insert(port, device_socket.into());
-        state.forward_listeners.insert(device_socket.into(), listener);
+        let delay = {
+            let mut state = self.state();
+            state.forwards.insert(port, device_socket.into());
+            state.forward_listeners.insert(device_socket.into(), TcpListener::from_std(listener)?);
+            state.forward_delay
+        };
+        // Como no adb real, o túnel já existe mesmo que quem pediu desista
+        // antes da resposta.
+        if let Some(delay) = delay {
+            tokio::time::sleep(delay).await;
+        }
         Ok(port)
     }
 
@@ -317,7 +334,7 @@ impl AdbLink for FakeAdb {
                 () = control.kill_requested() => "[server] killed".to_owned(),
             };
             state.lock().unwrap().running_servers -= 1;
-            control.exited(output);
+            control.report_exit(output);
         });
         Ok(process)
     }

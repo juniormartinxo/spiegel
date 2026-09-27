@@ -4,7 +4,8 @@ import type { VideoCodec } from "../core";
 
 import { DecodePlanner, type VideoPacket } from "./packets";
 
-export type DecoderProblem = { kind: "unsupportedCodec"; codec: string } | { kind: "failed"; detail: string };
+/** `codec` é sempre o do núcleo (ex.: "h265"), nunca a string do WebCodecs. */
+export type DecoderProblem = { kind: "unsupportedCodec"; codec: VideoCodec } | { kind: "failed"; detail: string };
 
 interface Handlers {
   /** O primeiro quadro de cada captura foi desenhado. */
@@ -58,7 +59,8 @@ export class ScreenDecoder {
         const support = await VideoDecoder.isConfigSupported(config);
         if (this.closed) return;
         if (!support.supported) {
-          this.fail({ kind: "unsupportedCodec", codec: step.codec });
+          // O DecodePlanner só configura H.264.
+          this.fail({ kind: "unsupportedCodec", codec: "h264" });
           return;
         }
         this.decoder.configure(config);

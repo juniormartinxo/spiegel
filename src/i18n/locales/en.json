@@ -76,11 +76,14 @@
       "connectTimeout": "The Device did not respond in time. Unlock it and try again.",
       "connectionFailed": "Could not connect to the Device ({{detail}}).",
       "disconnected": "The Device was disconnected or stopped sending video.",
+      "videoDisabled": "The Device turned off the video stream.",
+      "videoConfigFailed": "The Device could not configure its video encoder.",
       "protocolError": "The Device sent data Spiegel does not understand ({{detail}})."
     },
     "decoder": {
       "unsupportedCodec": "This computer cannot decode the video ({{codec}}).",
       "failed": "Could not decode the video ({{detail}})."
-    }
+    },
+    "startFailed": "Could not start the Session ({{detail}})."
   }
 }

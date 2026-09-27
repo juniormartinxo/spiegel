@@ -77,6 +77,8 @@ export type EndReason =
   | { kind: "connectTimeout" }
   | { kind: "connectionFailed"; detail: string }
   | { kind: "disconnected" }
+  | { kind: "videoDisabled" }
+  | { kind: "videoConfigFailed" }
   | { kind: "protocolError"; detail: string };
 
 /** Os eventos de Sessão em JSON. Os pacotes de vídeo chegam à parte, em binário. */

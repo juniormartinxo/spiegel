@@ -12,9 +12,10 @@ export default function App() {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<RegistrySnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Seriais dos Dispositivos com uma visualização de Sessão aberta. A
-  // interface oferece uma Sessão de Tela por Dispositivo.
-  const [sessions, setSessions] = useState<string[]>([]);
+  // O Dispositivo com a visualização de Sessão aberta. Por enquanto há uma
+  // Sessão por vez; iniciar outra troca a atual. Várias ao mesmo tempo vêm
+  // na #14.
+  const [session, setSession] = useState<string | null>(null);
 
   useEffect(() => {
     // Assina antes de ler o estado atual, para não perder uma mudança no meio.
@@ -24,10 +25,7 @@ export default function App() {
   }, []);
 
   const devices = snapshot?.devices ?? [];
-  const activeSessions: ReadonlySet<string> = new Set(sessions);
-  const openSession = (serial: string) =>
-    setSessions((current) => (current.includes(serial) ? current : [...current, serial]));
-  const closeSession = (serial: string) => setSessions((current) => current.filter((open) => open !== serial));
+  const activeSessions: ReadonlySet<string> = new Set(session ? [session] : []);
   const nameOf = (serial: string) => {
     const device = devices.find((candidate) => candidate.serial === serial);
     return device ? deviceName(device) : serial;
@@ -45,7 +43,7 @@ export default function App() {
         </button>
       </header>
 
-      <main className="app-main" data-sessions={sessions.length > 0}>
+      <main className="app-main" data-sessions={session !== null}>
         <div className="app-sidebar">
           {snapshot && <AdbBanner status={snapshot.adb} onOpenSettings={() => setSettingsOpen(true)} />}
 
@@ -55,7 +53,7 @@ export default function App() {
               {devices.length > 0 && <span className="muted">{t("devices.count", { count: devices.length })}</span>}
             </div>
             {devices.length > 0 ? (
-              <DeviceList devices={devices} activeSessions={activeSessions} onStartSession={openSession} />
+              <DeviceList devices={devices} activeSessions={activeSessions} onStartSession={setSession} />
             ) : (
               // Com o adb com problema, o aviso acima explica; o checklist é sobre
               // cabo e depuração USB, então só faz sentido com o adb pronto.
@@ -64,9 +62,9 @@ export default function App() {
           </section>
         </div>
 
-        {sessions.map((serial) => (
-          <SessionView key={serial} serial={serial} fallbackName={nameOf(serial)} onClose={() => closeSession(serial)} />
-        ))}
+        {session && (
+          <SessionView key={session} serial={session} fallbackName={nameOf(session)} onClose={() => setSession(null)} />
+        )}
       </main>
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
