@@ -1,0 +1,100 @@
+<!doctype html>
+<!-- SPIKE — throwaway. Opens the "Spiegel" camera with getUserMedia, decodes the stamp the
+     feeder burns into each frame and measures feeder -> rendered-frame latency. -->
+<meta charset="utf-8">
+<title>vcam probe</title>
+<video id="v" autoplay muted playsinline width="640" height="360"></video>
+<pre id="out"></pre>
+<script>
+const out = document.getElementById('out');
+const log = (s) => { out.textContent += s + '\n'; };
+const params = new URLSearchParams(location.search);
+const seconds = Number(params.get('seconds') || 10);
+
+async function clockOffset() {
+  // Server clock = QPC in ms (libuv hrtime uses QueryPerformanceCounter on Windows).
+  let best = null;
+  for (let i = 0; i < 20; i++) {
+    const t0 = performance.now();
+    const server = await (await fetch('/now', {cache: 'no-store'})).json();
+    const t1 = performance.now();
+    if (!best || t1 - t0 < best.rtt) best = {rtt: t1 - t0, offset: server.ms - (t0 + t1) / 2};
+  }
+  return best;
+}
+
+function readStamp(px, width) {
+  // Mirrors SpikeReadStamp: 96 blocks of 12x16 starting at (64, 8).
+  const bits = [];
+  for (let b = 0; b < 96; b++) {
+    const x = 64 + b * 12 + 6, y = 8 + 8;
+    const i = (y * width + x) * 4;
+    bits.push(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2] > 128 ? 1 : 0);
+  }
+  let sum = 0;
+  for (let i = 0; i < 88; i++) sum = (sum * 31 + bits[i] + 7) & 0xff;
+  let got = 0;
+  for (let i = 0; i < 8; i++) got |= bits[88 + i] << i;
+  if (sum !== got) return null;
+  let qpc = 0n, frame = 0;
+  for (let i = 0; i < 64; i++) if (bits[i]) qpc |= 1n << BigInt(i);
+  for (let i = 0; i < 24; i++) frame |= bits[64 + i] << i;
+  return {qpcMs: Number(qpc) / 10000, frame}; // QPC frequency on this machine: 10 MHz
+}
+
+(async () => {
+  const result = {ua: navigator.userAgent};
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({video: true});
+    tmp.getTracks().forEach(t => t.stop());
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    result.devices = devices.map(d => d.label);
+    const dev = devices.find(d => d.label.includes('Spiegel'));
+    if (!dev) throw new Error('camera Spiegel nao encontrada');
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {deviceId: {exact: dev.deviceId}, width: 1280, height: 720, frameRate: 30}});
+    const track = stream.getVideoTracks()[0];
+    result.settings = track.getSettings();
+    const video = document.getElementById('v');
+    video.srcObject = stream;
+    await video.play();
+    const sync = await clockOffset();
+    result.clockRttMs = sync.rtt;
+
+    const canvas = new OffscreenCanvas(1280, 32);
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    const lat = [];
+    let frames = 0, standby = 0, dup = 0, gaps = 0, last = -1;
+    const start = performance.now();
+    await new Promise((resolve) => {
+      const onFrame = (now, meta) => {
+        frames++;
+        ctx.drawImage(video, 0, 0, 1280, 32, 0, 0, 1280, 32);
+        const s = readStamp(ctx.getImageData(0, 0, 1280, 32).data, 1280);
+        if (s) {
+          // expectedDisplayTime: when the compositor is expected to show this frame.
+          lat.push(meta.expectedDisplayTime + sync.offset - s.qpcMs);
+          if (s.frame === last) dup++; else if (last >= 0 && s.frame !== last + 1) gaps++;
+          last = s.frame;
+        } else standby++;
+        if (performance.now() - start < seconds * 1000) video.requestVideoFrameCallback(onFrame);
+        else resolve();
+      };
+      video.requestVideoFrameCallback(onFrame);
+    });
+    const elapsed = (performance.now() - start) / 1000;
+    lat.sort((a, b) => a - b);
+    Object.assign(result, {
+      frames, fps: frames / elapsed, standby, dup, gaps,
+      latencyMs: lat.length ? {
+        min: lat[0], p50: lat[lat.length >> 1], p95: lat[Math.floor(lat.length * 0.95)], max: lat[lat.length - 1],
+        avg: lat.reduce((a, b) => a + b, 0) / lat.length} : null,
+    });
+    track.stop();
+  } catch (e) {
+    result.error = String(e);
+  }
+  log(JSON.stringify(result, null, 2));
+  await fetch('/result', {method: 'POST', body: JSON.stringify(result)});
+})();
+</script>
