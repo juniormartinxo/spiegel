@@ -1,7 +1,8 @@
+import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { restartAdbServer, type AdbStatus } from "../core";
+import { restartAdbServer, type AdbProblem, type AdbStatus } from "../core";
 
 interface Props {
   status: AdbStatus;
@@ -56,11 +57,7 @@ export function AdbBanner({ status, onOpenSettings }: Props) {
     case "unavailable":
       return (
         <div className="banner banner-error" role="alert">
-          <p className="banner-text">
-            {status.problem.kind === "notFound"
-              ? t("adb.notFound", { path: status.problem.path })
-              : t("adb.failed", { detail: status.problem.detail })}
-          </p>
+          <p className="banner-text">{problemText(status.problem, t)}</p>
           <div className="banner-actions">
             <button type="button" className="button" onClick={onOpenSettings}>
               {t("adb.openSettings")}
@@ -69,4 +66,10 @@ export function AdbBanner({ status, onOpenSettings }: Props) {
         </div>
       );
   }
+}
+
+function problemText(problem: AdbProblem, t: TFunction): string {
+  return problem.kind === "notFound"
+    ? t("adb.problem.notFound", { path: problem.path })
+    : t(`adb.problem.${problem.kind}`, { detail: problem.detail });
 }

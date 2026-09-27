@@ -15,8 +15,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     dialog.current?.showModal();
     void getAdbSettings().then((settings) => {
       setCurrent(settings);
-      setUseCustom(settings.customPath !== null);
-      setCustomPath(settings.customPath ?? "");
+      setUseCustom(settings.adbPath !== null);
+      setCustomPath(settings.adbPath ?? "");
     });
   }, []);
 

@@ -17,7 +17,8 @@
       "unauthorized": "Unlock the device and tap “Allow” on the “Allow USB debugging?” prompt.",
       "offline": "The device is not responding. Unplug the cable and plug it back in."
     },
-    "serial": "Serial {{serial}}"
+    "serial": "Serial {{serial}}",
+    "sessionActive": "Session running"
   },
   "empty": {
     "title": "No devices connected",
@@ -33,13 +34,20 @@
     "conflict": {
       "title": "Another adb server is already running",
       "body": "It is version {{server}}, and Spiegel uses version {{client}}. Devices still show up, but Sessions may fail.",
-      "restart": "Restart with Spiegel's adb",
+      "restart": "Restart with the configured adb",
       "restartNote": "Other programs that use adb lose their connection for a few seconds.",
       "useOther": "Use another adb"
     },
-    "notFound": "adb was not found at {{path}}.",
-    "failed": "adb failed: {{detail}}",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "problem": {
+      "notFound": "adb was not found at {{path}}.",
+      "spawnFailed": "Couldn't run adb ({{detail}}).",
+      "commandFailed": "adb couldn't start its server ({{detail}}).",
+      "unexpectedOutput": "adb replied with something unexpected ({{detail}}).",
+      "connectionFailed": "Couldn't talk to the adb server ({{detail}}).",
+      "rejected": "The adb server rejected the request ({{detail}}).",
+      "timeout": "The adb server didn't answer in time ({{detail}})."
+    }
   },
   "settings": {
     "title": "Settings",

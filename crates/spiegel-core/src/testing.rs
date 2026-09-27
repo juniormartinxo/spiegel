@@ -20,6 +20,8 @@ struct State {
     missing_path: PathBuf,
     server_version: Option<u32>,
     start_failure: Option<String>,
+    /// Versão do servidor que "outra ferramenta" sobe durante o start-server.
+    foreign_server_on_start: Option<u32>,
     tracker: Option<mpsc::Sender<Result<Vec<Device>, AdbError>>>,
     devices: Vec<Device>,
     starts: u32,
@@ -46,6 +48,7 @@ impl FakeAdb {
                 missing_path: PathBuf::new(),
                 server_version: None,
                 start_failure: None,
+                foreign_server_on_start: None,
                 tracker: None,
                 devices: vec![],
                 starts: 0,
@@ -67,6 +70,12 @@ impl FakeAdb {
 
     pub fn fail_start(&self, detail: &str) {
         self.state().start_failure = Some(detail.to_owned());
+    }
+
+    /// Simula outra ferramenta subindo o servidor dela, de outra versão,
+    /// entre a checagem do Spiegel e o start-server dele.
+    pub fn foreign_server_appears_on_start(&self, version: u32) {
+        self.state().foreign_server_on_start = Some(version);
     }
 
     /// Troca a lista de Dispositivos e avisa quem está acompanhando. Espera
@@ -115,9 +124,9 @@ impl AdbLink for FakeAdb {
         let mut state = self.state();
         state.starts += 1;
         if let Some(detail) = state.start_failure.clone() {
-            return Err(AdbError::Failed(detail));
+            return Err(AdbError::CommandFailed(detail));
         }
-        state.server_version = state.client_version;
+        state.server_version = state.foreign_server_on_start.take().or(state.client_version);
         Ok(())
     }
 

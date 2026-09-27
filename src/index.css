@@ -327,6 +327,15 @@ p {
   background: color-mix(in srgb, var(--error) 14%, transparent);
 }
 
+.session-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 1px 9px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
 .device-hint {
   font-size: 0.9rem;
 }

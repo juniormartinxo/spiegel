@@ -36,18 +36,24 @@ pub trait AdbLink: Send + Sync + 'static {
     fn track_devices(&self) -> impl Future<Output = Result<DeviceTracker, AdbError>> + Send;
 }
 
+/// Erros do adb. As mensagens são técnicas, em inglês, e servem para log.
+/// A interface não as mostra: ela traduz o `AdbProblem` correspondente.
 #[derive(Debug, thiserror::Error)]
 pub enum AdbError {
-    #[error("binário do adb não encontrado em {0}")]
+    #[error("adb binary not found at {0}")]
     NotFound(PathBuf),
-    #[error("falha ao executar o adb: {0}")]
+    #[error("failed to run adb: {0}")]
     Spawn(std::io::Error),
-    #[error("o adb terminou com erro: {0}")]
-    Failed(String),
-    #[error("erro de comunicação com o servidor adb: {0}")]
+    #[error("adb command failed: {0}")]
+    CommandFailed(String),
+    #[error("unexpected adb output: {0}")]
+    UnexpectedOutput(String),
+    #[error("adb server connection error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("resposta inesperada do servidor adb: {0}")]
+    #[error("adb protocol error: {0}")]
     Protocol(String),
-    #[error("o servidor adb recusou o pedido: {0}")]
+    #[error("adb server rejected the request: {0}")]
     Rejected(String),
+    #[error("adb timeout: {0}")]
+    Timeout(&'static str),
 }

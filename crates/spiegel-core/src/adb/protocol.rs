@@ -24,7 +24,7 @@ pub async fn read_status<R: AsyncRead + Unpin>(reader: &mut R) -> Result<(), Adb
             let message = read_block(reader).await?.unwrap_or_default();
             Err(AdbError::Rejected(message))
         }
-        other => Err(AdbError::Protocol(format!("status {:?}", String::from_utf8_lossy(other)))),
+        other => Err(AdbError::Protocol(format!("unexpected status {:?}", String::from_utf8_lossy(other)))),
     }
 }
 
@@ -39,7 +39,7 @@ pub async fn read_block<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<S
             return if filled == 0 {
                 Ok(None)
             } else {
-                Err(AdbError::Protocol("conexão fechou no meio do prefixo".into()))
+                Err(AdbError::Protocol("connection closed inside a length prefix".into()))
             };
         }
         filled += n;
@@ -49,14 +49,14 @@ pub async fn read_block<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Option<S
     reader.read_exact(&mut payload).await?;
     String::from_utf8(payload)
         .map(Some)
-        .map_err(|_| AdbError::Protocol("bloco não é UTF-8".into()))
+        .map_err(|_| AdbError::Protocol("block is not UTF-8".into()))
 }
 
 pub fn parse_hex(digits: &[u8]) -> Result<u32, AdbError> {
     std::str::from_utf8(digits)
         .ok()
         .and_then(|text| u32::from_str_radix(text, 16).ok())
-        .ok_or_else(|| AdbError::Protocol(format!("hexadecimal inválido {:?}", String::from_utf8_lossy(digits))))
+        .ok_or_else(|| AdbError::Protocol(format!("invalid hex {:?}", String::from_utf8_lossy(digits))))
 }
 
 #[cfg(test)]
@@ -64,21 +64,21 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn pedido_tem_prefixo_hexadecimal() {
+    async fn request_has_a_hex_length_prefix() {
         let mut out = Vec::new();
         send_request(&mut out, "host:version").await.unwrap();
         assert_eq!(out, b"000chost:version");
     }
 
     #[tokio::test]
-    async fn fail_vira_rejected_com_mensagem() {
+    async fn fail_becomes_rejected_with_the_message() {
         let mut input: &[u8] = b"FAIL0007unknown";
         let err = read_status(&mut input).await.unwrap_err();
         assert!(matches!(err, AdbError::Rejected(msg) if msg == "unknown"));
     }
 
     #[tokio::test]
-    async fn blocos_em_sequencia_e_fim_limpo() {
+    async fn consecutive_blocks_and_a_clean_end() {
         let mut input: &[u8] = b"0003abc0000";
         assert_eq!(read_block(&mut input).await.unwrap().as_deref(), Some("abc"));
         assert_eq!(read_block(&mut input).await.unwrap().as_deref(), Some(""));
@@ -86,7 +86,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn fim_no_meio_do_prefixo_e_erro() {
+    async fn end_inside_a_prefix_is_an_error() {
         let mut input: &[u8] = b"00";
         assert!(matches!(read_block(&mut input).await, Err(AdbError::Protocol(_))));
     }

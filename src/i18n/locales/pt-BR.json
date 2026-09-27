@@ -17,7 +17,8 @@
       "unauthorized": "Desbloqueie o Dispositivo e toque em “Permitir” no aviso “Permitir depuração USB?”.",
       "offline": "O Dispositivo não está respondendo. Desconecte e conecte o cabo de novo."
     },
-    "serial": "Serial {{serial}}"
+    "serial": "Serial {{serial}}",
+    "sessionActive": "Sessão em andamento"
   },
   "empty": {
     "title": "Nenhum Dispositivo conectado",
@@ -33,13 +34,20 @@
     "conflict": {
       "title": "Outro servidor adb já está rodando",
       "body": "Ele é da versão {{server}}, e o Spiegel usa a versão {{client}}. Os Dispositivos continuam aparecendo, mas as Sessões podem falhar.",
-      "restart": "Reiniciar com o adb do Spiegel",
+      "restart": "Reiniciar com o adb configurado",
       "restartNote": "Outros programas que usam o adb perdem a conexão por alguns segundos.",
       "useOther": "Usar outro adb"
     },
-    "notFound": "O adb não foi encontrado em {{path}}.",
-    "failed": "O adb falhou: {{detail}}",
-    "openSettings": "Abrir configurações"
+    "openSettings": "Abrir configurações",
+    "problem": {
+      "notFound": "O adb não foi encontrado em {{path}}.",
+      "spawnFailed": "Não foi possível executar o adb ({{detail}}).",
+      "commandFailed": "O adb não conseguiu iniciar o servidor ({{detail}}).",
+      "unexpectedOutput": "O adb respondeu algo inesperado ({{detail}}).",
+      "connectionFailed": "Não foi possível conversar com o servidor adb ({{detail}}).",
+      "rejected": "O servidor adb recusou o pedido ({{detail}}).",
+      "timeout": "O servidor adb não respondeu a tempo ({{detail}})."
+    }
   },
   "settings": {
     "title": "Configurações",

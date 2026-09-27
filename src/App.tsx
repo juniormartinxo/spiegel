@@ -20,6 +20,9 @@ export default function App() {
   }, []);
 
   const devices = snapshot?.devices ?? [];
+  // Seriais dos Dispositivos com uma Sessão rodando. Fica vazio até existirem
+  // Sessões (#6); a marcação na lista já está prevista.
+  const activeSessions: ReadonlySet<string> = new Set();
 
   return (
     <div className="app">
@@ -41,7 +44,13 @@ export default function App() {
             <h2 id="devices-heading">{t("devices.heading")}</h2>
             {devices.length > 0 && <span className="muted">{t("devices.count", { count: devices.length })}</span>}
           </div>
-          {devices.length > 0 ? <DeviceList devices={devices} /> : snapshot?.adb.kind !== "starting" && <EmptyState />}
+          {devices.length > 0 ? (
+            <DeviceList devices={devices} activeSessions={activeSessions} />
+          ) : (
+            // Com o adb com problema, o aviso acima explica; o checklist é sobre
+            // cabo e depuração USB, então só faz sentido com o adb pronto.
+            snapshot?.adb.kind === "ready" && <EmptyState />
+          )}
         </section>
       </main>
 

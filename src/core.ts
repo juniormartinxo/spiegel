@@ -7,7 +7,7 @@ export type DeviceState =
   | { kind: "ready" }
   | { kind: "unauthorized" }
   | { kind: "offline" }
-  | { kind: "other"; state: string };
+  | { kind: "other"; adbState: string };
 
 export interface Device {
   serial: string;
@@ -15,7 +15,16 @@ export interface Device {
   state: DeviceState;
 }
 
-export type AdbProblem = { kind: "notFound"; path: string } | { kind: "failed"; detail: string };
+/** Por que o adb está indisponível. A interface traduz o `kind`; `detail` é
+ *  o texto técnico cru (mensagem do sistema, saída do adb). */
+export type AdbProblem =
+  | { kind: "notFound"; path: string }
+  | { kind: "spawnFailed"; detail: string }
+  | { kind: "commandFailed"; detail: string }
+  | { kind: "unexpectedOutput"; detail: string }
+  | { kind: "connectionFailed"; detail: string }
+  | { kind: "rejected"; detail: string }
+  | { kind: "timeout"; detail: string };
 
 export type AdbStatus =
   | { kind: "starting" }
@@ -30,7 +39,8 @@ export interface RegistrySnapshot {
 }
 
 export interface AdbSettings {
-  customPath: string | null;
+  /** O adb escolhido pelo usuário, ou `null` para o embutido. */
+  adbPath: string | null;
   bundledPath: string;
 }
 
@@ -44,7 +54,8 @@ export const getAdbSettings = () => invoke<AdbSettings>("get_adb_settings");
 /** `null` volta ao adb embutido. */
 export const setAdbPath = (path: string | null) => invoke<void>("set_adb_path", { path });
 
-/** Só por decisão do usuário: encerra o servidor adb atual e inicia o do Spiegel. */
+/** Só por decisão do usuário: encerra o servidor adb atual e inicia um com o
+ *  adb configurado. Resolve quando o novo estado já foi emitido. */
 export const restartAdbServer = () => invoke<void>("restart_adb_server");
 
 /** Nome para exibir: o modelo, ou o serial quando o adb não informa o modelo. */

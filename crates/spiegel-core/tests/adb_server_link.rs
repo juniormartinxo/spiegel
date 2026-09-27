@@ -22,7 +22,7 @@ async fn fake_server(expected_service: &'static str, reply: Vec<u8>) -> (AdbServ
         assert_eq!(std::str::from_utf8(&service).unwrap(), expected_service);
         socket.write_all(&reply).await.unwrap();
     });
-    (AdbServerLink::with_server_addr(PathBuf::from("adb-nao-usado"), addr), task)
+    (AdbServerLink::with_server_addr(PathBuf::from("adb-unused"), addr), task)
 }
 
 fn block(text: &str) -> Vec<u8> {
@@ -30,7 +30,7 @@ fn block(text: &str) -> Vec<u8> {
 }
 
 #[tokio::test]
-async fn le_a_versao_do_servidor() {
+async fn reads_the_server_version() {
     let mut reply = b"OKAY".to_vec();
     reply.extend(block("0029"));
     let (link, task) = fake_server("host:version", reply).await;
@@ -40,16 +40,16 @@ async fn le_a_versao_do_servidor() {
 }
 
 #[tokio::test]
-async fn sem_servidor_a_versao_e_none() {
+async fn no_server_means_no_version() {
     // Uma porta que acabou de ser liberada: ninguém escuta nela.
     let addr = TcpListener::bind("127.0.0.1:0").await.unwrap().local_addr().unwrap();
-    let link = AdbServerLink::with_server_addr(PathBuf::from("adb-nao-usado"), addr);
+    let link = AdbServerLink::with_server_addr(PathBuf::from("adb-unused"), addr);
 
     assert_eq!(link.server_version().await.unwrap(), None);
 }
 
 #[tokio::test]
-async fn acompanha_as_listas_de_dispositivos() {
+async fn tracks_device_lists() {
     let mut reply = b"OKAY".to_vec();
     reply.extend(block(""));
     reply.extend(block("R58M123    unauthorized transport_id:1\n"));
@@ -69,7 +69,7 @@ async fn acompanha_as_listas_de_dispositivos() {
 }
 
 #[tokio::test]
-async fn recusa_do_servidor_vira_erro() {
+async fn a_server_rejection_is_an_error() {
     let mut reply = b"FAIL".to_vec();
     reply.extend(block("unknown host service"));
     let (link, task) = fake_server("host:track-devices-l", reply).await;
@@ -80,7 +80,17 @@ async fn recusa_do_servidor_vira_erro() {
 }
 
 #[tokio::test]
-async fn binario_inexistente_e_not_found() {
-    let link = AdbServerLink::new(PathBuf::from("C:/nao/existe/adb.exe"));
+async fn kill_waits_for_the_server_to_leave_the_port() {
+    // O servidor responde OKAY ao host:kill e sai: fecha a conexão e larga a porta.
+    let (link, task) = fake_server("host:kill", b"OKAY".to_vec()).await;
+
+    link.kill_server().await.unwrap();
+    task.await.unwrap();
+    assert_eq!(link.server_version().await.unwrap(), None);
+}
+
+#[tokio::test]
+async fn a_missing_binary_is_not_found() {
+    let link = AdbServerLink::new(PathBuf::from("C:/does/not/exist/adb.exe"));
     assert!(matches!(link.client_version().await, Err(AdbError::NotFound(_))));
 }

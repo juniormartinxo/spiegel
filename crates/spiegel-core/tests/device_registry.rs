@@ -25,116 +25,135 @@ async fn wait_for(
         .ok()
         .and_then(Result::ok)
         .map(|snapshot| snapshot.clone());
-    found.unwrap_or_else(|| panic!("tempo esgotado esperando: {what}; último estado: {:?}", *rx.borrow()))
+    found.unwrap_or_else(|| panic!("timed out waiting for: {what}; last state: {:?}", *rx.borrow()))
 }
 
 #[tokio::test]
-async fn inicia_o_servidor_e_mostra_o_dispositivo_plugado() {
+async fn starts_the_server_and_lists_a_plugged_device() {
     let adb = FakeAdb::new(41);
     let registry = DeviceRegistry::start(adb.clone(), options());
     let mut rx = registry.subscribe();
 
-    wait_for(&mut rx, "adb pronto", |s| s.adb == AdbStatus::Ready { version: 41 }).await;
+    wait_for(&mut rx, "adb ready", |s| s.adb == AdbStatus::Ready { version: 41 }).await;
     assert_eq!(adb.starts(), 1);
 
     let pixel = device("R58M123", Some("Pixel 7"), DeviceState::Ready);
     adb.set_devices(vec![pixel.clone()]).await;
-    let snapshot = wait_for(&mut rx, "Dispositivo na lista", |s| !s.devices.is_empty()).await;
+    let snapshot = wait_for(&mut rx, "device listed", |s| !s.devices.is_empty()).await;
     assert_eq!(snapshot.devices, vec![pixel]);
 }
 
 #[tokio::test]
-async fn acompanha_mudanca_de_estado_e_remocao() {
+async fn follows_state_changes_and_removal() {
     let adb = FakeAdb::new(41);
     let registry = DeviceRegistry::start(adb.clone(), options());
     let mut rx = registry.subscribe();
 
     adb.set_devices(vec![device("abc", None, DeviceState::Unauthorized)]).await;
-    wait_for(&mut rx, "não autorizado", |s| s.devices.iter().any(|d| d.state == DeviceState::Unauthorized)).await;
+    wait_for(&mut rx, "unauthorized", |s| s.devices.iter().any(|d| d.state == DeviceState::Unauthorized)).await;
 
     adb.set_devices(vec![device("abc", Some("Pixel 7"), DeviceState::Ready)]).await;
-    let snapshot = wait_for(&mut rx, "autorizado", |s| s.devices.iter().any(|d| d.state == DeviceState::Ready)).await;
+    let snapshot = wait_for(&mut rx, "authorized", |s| s.devices.iter().any(|d| d.state == DeviceState::Ready)).await;
     assert_eq!(snapshot.devices[0].model.as_deref(), Some("Pixel 7"));
 
     adb.set_devices(vec![]).await;
-    wait_for(&mut rx, "lista vazia", |s| s.devices.is_empty()).await;
+    wait_for(&mut rx, "empty list", |s| s.devices.is_empty()).await;
 }
 
 #[tokio::test]
-async fn usa_um_servidor_da_mesma_versao_que_ja_esta_rodando() {
+async fn reuses_a_running_server_of_the_same_version() {
     let adb = FakeAdb::new(41).with_running_server(41);
     let registry = DeviceRegistry::start(adb.clone(), options());
     let mut rx = registry.subscribe();
 
-    wait_for(&mut rx, "adb pronto", |s| s.adb == AdbStatus::Ready { version: 41 }).await;
+    wait_for(&mut rx, "adb ready", |s| s.adb == AdbStatus::Ready { version: 41 }).await;
     assert_eq!(adb.starts(), 0);
     assert_eq!(adb.kills(), 0);
 }
 
 #[tokio::test]
-async fn servidor_de_outra_versao_e_informado_e_nao_derrubado() {
+async fn reports_a_server_of_another_version_without_killing_it() {
     let adb = FakeAdb::new(41).with_running_server(40);
     let registry = DeviceRegistry::start(adb.clone(), options());
     let mut rx = registry.subscribe();
 
     let conflict = AdbStatus::Conflict { server_version: 40, client_version: 41 };
-    wait_for(&mut rx, "conflito", |s| s.adb == conflict).await;
+    wait_for(&mut rx, "conflict", |s| s.adb == conflict).await;
 
     // Mesmo com o conflito, os Dispositivos continuam aparecendo.
     adb.set_devices(vec![device("abc", Some("Pixel 7"), DeviceState::Ready)]).await;
-    wait_for(&mut rx, "Dispositivo durante o conflito", |s| s.adb == conflict && s.devices.len() == 1).await;
-    assert_eq!(adb.kills(), 0, "o servidor do usuário não pode ser derrubado sem ele pedir");
+    wait_for(&mut rx, "device during the conflict", |s| s.adb == conflict && s.devices.len() == 1).await;
+    assert_eq!(adb.kills(), 0, "the user's server must not be killed unless they ask");
+}
 
-    // O usuário escolhe reiniciar com o adb do Spiegel.
-    registry.restart_server().await;
-    wait_for(&mut rx, "adb do Spiegel pronto", |s| s.adb == AdbStatus::Ready { version: 41 }).await;
+#[tokio::test]
+async fn restart_requested_by_the_user_finishes_with_the_new_state_published() {
+    let adb = FakeAdb::new(41).with_running_server(40);
+    let registry = DeviceRegistry::start(adb.clone(), options());
+    let mut rx = registry.subscribe();
+    wait_for(&mut rx, "conflict", |s| matches!(s.adb, AdbStatus::Conflict { .. })).await;
+
+    // O pedido só retorna depois do reinício, com o estado novo já publicado.
+    registry.restart_handle().restart_server().await;
+    assert_eq!(registry.snapshot().adb, AdbStatus::Ready { version: 41 });
     assert_eq!(adb.kills(), 1);
     assert_eq!(adb.starts(), 1);
 }
 
 #[tokio::test]
-async fn binario_ausente_fica_indisponivel() {
-    let adb = FakeAdb::missing("C:/nao/existe/adb.exe");
+async fn a_foreign_server_started_during_startup_is_a_conflict() {
+    let adb = FakeAdb::new(41);
+    adb.foreign_server_appears_on_start(39);
+    let registry = DeviceRegistry::start(adb.clone(), options());
+    let mut rx = registry.subscribe();
+
+    wait_for(&mut rx, "conflict", |s| s.adb == AdbStatus::Conflict { server_version: 39, client_version: 41 }).await;
+    assert_eq!(adb.kills(), 0);
+}
+
+#[tokio::test]
+async fn missing_binary_is_unavailable() {
+    let adb = FakeAdb::missing("C:/does/not/exist/adb.exe");
     let registry = DeviceRegistry::start(adb, options());
     let mut rx = registry.subscribe();
 
-    let snapshot = wait_for(&mut rx, "indisponível", |s| matches!(s.adb, AdbStatus::Unavailable { .. })).await;
+    let snapshot = wait_for(&mut rx, "unavailable", |s| matches!(s.adb, AdbStatus::Unavailable { .. })).await;
     assert_eq!(
         snapshot.adb,
-        AdbStatus::Unavailable { problem: AdbProblem::NotFound { path: "C:/nao/existe/adb.exe".into() } }
+        AdbStatus::Unavailable { problem: AdbProblem::NotFound { path: "C:/does/not/exist/adb.exe".into() } }
     );
 }
 
 #[tokio::test]
-async fn falha_ao_iniciar_o_servidor_e_informada() {
+async fn failing_to_start_the_server_is_reported() {
     let adb = FakeAdb::new(41);
-    adb.fail_start("porta 5037 ocupada");
+    adb.fail_start("port 5037 in use");
     let registry = DeviceRegistry::start(adb, options());
     let mut rx = registry.subscribe();
 
-    let snapshot = wait_for(&mut rx, "indisponível", |s| matches!(s.adb, AdbStatus::Unavailable { .. })).await;
-    let AdbStatus::Unavailable { problem: AdbProblem::Failed { detail } } = snapshot.adb else {
-        panic!("esperava falha ao iniciar, veio {:?}", snapshot.adb);
-    };
-    assert!(detail.contains("porta 5037 ocupada"), "{detail}");
+    let snapshot = wait_for(&mut rx, "unavailable", |s| matches!(s.adb, AdbStatus::Unavailable { .. })).await;
+    assert_eq!(
+        snapshot.adb,
+        AdbStatus::Unavailable { problem: AdbProblem::CommandFailed { detail: "port 5037 in use".into() } }
+    );
 }
 
 #[tokio::test]
-async fn servidor_que_morre_limpa_a_lista_e_volta_sozinho() {
+async fn a_dying_server_clears_the_list_and_comes_back_by_itself() {
     let adb = FakeAdb::new(41);
     let registry = DeviceRegistry::start(adb.clone(), options());
     let mut rx = registry.subscribe();
 
     let pixel = device("abc", Some("Pixel 7"), DeviceState::Ready);
     adb.set_devices(vec![pixel.clone()]).await;
-    wait_for(&mut rx, "Dispositivo na lista", |s| s.devices.len() == 1).await;
+    wait_for(&mut rx, "device listed", |s| s.devices.len() == 1).await;
 
     adb.kill_externally();
-    wait_for(&mut rx, "lista limpa", |s| s.devices.is_empty()).await;
+    wait_for(&mut rx, "list cleared", |s| s.devices.is_empty()).await;
 
     // O registro inicia o servidor de novo e a lista atual volta.
     let snapshot =
-        wait_for(&mut rx, "de volta", |s| s.adb == AdbStatus::Ready { version: 41 } && s.devices.len() == 1).await;
+        wait_for(&mut rx, "back", |s| s.adb == AdbStatus::Ready { version: 41 } && s.devices.len() == 1).await;
     assert_eq!(snapshot.devices, vec![pixel]);
     assert_eq!(adb.starts(), 2);
 }

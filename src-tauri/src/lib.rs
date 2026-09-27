@@ -35,11 +35,16 @@ fn start_registry(app: &AppHandle, state: &AppState) {
     let mut changes = registry.subscribe();
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        // Emite o estado atual primeiro: ao trocar de adb, a interface não pode
+        // ficar com a lista do registro anterior até a próxima mudança.
         // Termina sozinho quando o registro é trocado ou descartado.
-        while changes.changed().await.is_ok() {
+        loop {
             let snapshot = changes.borrow_and_update().clone();
             if let Err(err) = app.emit(SNAPSHOT_EVENT, snapshot) {
                 log::warn!("falha ao emitir {SNAPSHOT_EVENT}: {err}");
+            }
+            if changes.changed().await.is_err() {
+                break;
             }
         }
     });
@@ -56,15 +61,16 @@ fn get_snapshot(state: State<'_, AppState>) -> Option<RegistrySnapshot> {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AdbSettings {
-    /// Caminho escolhido pelo usuário, ou `null` para o embutido.
-    custom_path: Option<PathBuf>,
+    /// Caminho escolhido pelo usuário, ou `null` para o embutido. É o mesmo
+    /// `Settings::adb_path`.
+    adb_path: Option<PathBuf>,
     bundled_path: PathBuf,
 }
 
 #[tauri::command]
 fn get_adb_settings(state: State<'_, AppState>) -> AdbSettings {
     AdbSettings {
-        custom_path: state.settings.lock().unwrap().adb_path.clone(),
+        adb_path: state.settings.lock().unwrap().adb_path.clone(),
         bundled_path: state.bundled_adb.clone(),
     }
 }
@@ -82,7 +88,8 @@ fn set_adb_path(app: AppHandle, state: State<'_, AppState>, path: Option<PathBuf
     Ok(())
 }
 
-/// Decisão do usuário: encerrar o servidor adb atual e iniciar o do Spiegel.
+/// Decisão do usuário: encerrar o servidor adb atual e iniciar um com o adb
+/// configurado. Retorna quando o novo estado já foi emitido.
 #[tauri::command]
 async fn restart_adb_server(state: State<'_, AppState>) -> Result<(), String> {
     let handle = state.registry.lock().unwrap().as_ref().map(DeviceRegistry::restart_handle);

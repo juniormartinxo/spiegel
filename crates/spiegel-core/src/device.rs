@@ -22,8 +22,10 @@ pub enum DeviceState {
     /// Falta aceitar "Permitir depuração USB" no Dispositivo.
     Unauthorized,
     Offline,
-    /// Qualquer outro estado do adb (recovery, bootloader, authorizing…).
-    Other { state: String },
+    /// Qualquer outro estado do adb (recovery, bootloader, authorizing…),
+    /// com o texto do adb como veio.
+    #[serde(rename_all = "camelCase")]
+    Other { adb_state: String },
 }
 
 impl DeviceState {
@@ -32,7 +34,7 @@ impl DeviceState {
             "device" => Self::Ready,
             "unauthorized" => Self::Unauthorized,
             "offline" => Self::Offline,
-            other => Self::Other { state: other.to_owned() },
+            other => Self::Other { adb_state: other.to_owned() },
         }
     }
 }
@@ -45,9 +47,16 @@ pub fn parse_device_list(text: &str) -> Vec<Device> {
 }
 
 fn parse_device_line(line: &str) -> Option<Device> {
-    let mut tokens = line.split_whitespace();
+    let mut tokens = line.split_whitespace().peekable();
     let serial = tokens.next()?.to_owned();
-    let state = DeviceState::from_adb(tokens.next()?);
+    let mut state = tokens.next()?.to_owned();
+    // O único estado com espaço: "no permissions (…); see [url]", que o adb
+    // mostra no Linux sem regra do udev. O resto da explicação não atrapalha
+    // a busca pelo modelo abaixo.
+    if state == "no" && tokens.next_if_eq(&"permissions").is_some() {
+        state.push_str(" permissions");
+    }
+    let state = DeviceState::from_adb(&state);
     let model = tokens
         .find_map(|token| token.strip_prefix("model:"))
         .map(|model| model.replace('_', " "));
@@ -59,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn interpreta_lista_longa_do_adb() {
+    fn parses_the_long_adb_list() {
         let text = "R58M123ABC             device usb:1-4 product:beyond1 model:SM_G973F device:beyond1 transport_id:3\n\
                     emulator-5554          unauthorized transport_id:4\n\
                     0123456789ABCDEF       offline transport_id:5\n";
@@ -79,13 +88,24 @@ mod tests {
     }
 
     #[test]
-    fn estado_desconhecido_vira_other() {
+    fn unknown_state_becomes_other() {
         let devices = parse_device_list("abc recovery transport_id:1\n");
-        assert_eq!(devices[0].state, DeviceState::Other { state: "recovery".into() });
+        assert_eq!(devices[0].state, DeviceState::Other { adb_state: "recovery".into() });
     }
 
     #[test]
-    fn lista_vazia() {
+    fn empty_list() {
         assert!(parse_device_list("").is_empty());
+    }
+
+    #[test]
+    fn no_permissions_state_with_spaces() {
+        let line = concat!(
+            "0123456789ABCDEF no permissions (user in plugdev group; are your udev rules wrong?); ",
+            "see [http://developer.android.com/tools/device.html] usb:1-4 transport_id:2\n",
+        );
+        let devices = parse_device_list(line);
+        assert_eq!(devices[0].serial, "0123456789ABCDEF");
+        assert_eq!(devices[0].state, DeviceState::Other { adb_state: "no permissions".into() });
     }
 }
