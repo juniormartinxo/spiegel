@@ -4,7 +4,15 @@ This file provides guidance to AI coding agents working with code in this reposi
 
 ## Project
 
-Spiegel is a graphical front-end for [scrcpy](https://github.com/Genymobile/scrcpy) (Android screen mirroring/control over adb). The repo is at its initial stage — no source code, build system or tests exist yet. The GUI tech stack has not been decided; update this file with build/run/test commands once it is.
+Spiegel is a graphical front-end for [scrcpy](https://github.com/Genymobile/scrcpy) (Android screen mirroring/control over adb). The repo is at its initial stage — no source code, build system or tests exist yet; add build/run/test commands here once they do.
+
+Decided so far (read `CONTEXT.md` for the vocabulary and `docs/adr/` for the reasoning):
+
+- Spiegel is its own scrcpy client: it pushes a bundled `scrcpy-server` pinned to v4.1 and speaks the protocol itself, rather than launching `scrcpy.exe` (ADR 0001).
+- Stack: Tauri 2 with a Rust core (adb, protocol, Sessions, FFmpeg decoding for the Virtual webcam) and a TypeScript web UI that decodes the preview with WebCodecs. Raw frames never cross the Tauri IPC (ADR 0003).
+- The Virtual webcam is a C++ COM DLL: a Media Foundation virtual camera on Windows 11 and a DirectShow filter on Windows 10 (ADR 0002).
+- Windows first, portable to Linux and macOS. UI in English and Portuguese, with strings in translation files open to more languages.
+- Delivery order: (1) throwaway Media Foundation Virtual webcam prototype, (2) Screen + Remote control over USB, (3) Camera Video source feeding the Virtual webcam, (4) Profiles, Pairing, recording, audio, i18n, installer, tray.
 
 ## scrcpy reference
 
