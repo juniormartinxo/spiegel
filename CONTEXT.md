@@ -29,7 +29,7 @@ _Avoid_: input, feed
 ### Camera use
 
 **Virtual webcam**:
-A camera device on the computer, fed by a Session whose Video source is a Camera, that other apps (OBS, Zoom, Meet, browsers) can select like any physical webcam. There is exactly one, always present under the same name once installed, fed by at most one Session at a time; with none feeding it, it shows a standby image.
+A camera device on the computer, fed by a Session whose Video source is a Camera, that other apps (OBS, Zoom, Meet, browsers) can select like any physical webcam. There is exactly one, always present under the same name once installed, fed by at most one Session at a time and used by at most one app at a time; with none feeding it, it shows a standby image.
 _Avoid_: webcam mode, cam, camera output
 
 ### Input
