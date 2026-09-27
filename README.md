@@ -10,6 +10,8 @@ A friendly graphical front-end for [scrcpy](https://github.com/Genymobile/scrcpy
 ![Status: early development](https://img.shields.io/badge/status-early%20development-orange.svg)
 ![Platform: Windows first](https://img.shields.io/badge/platform-Windows%20first-lightgrey.svg)
 
+**English** · [Português (Brasil)](README.pt-BR.md)
+
 </div>
 
 > [!NOTE]
