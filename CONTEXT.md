@@ -1,43 +1,45 @@
 # Spiegel
 
-Spiegel is a friendly graphical front-end for scrcpy: everything a user would do with scrcpy on the command line, done from one app, with the phone's image shown inside Spiegel's own window.
+O Spiegel é uma interface gráfica amigável para o scrcpy: tudo o que alguém faria com o scrcpy na linha de comando, feito por um único aplicativo, com a imagem do celular exibida dentro da própria janela do Spiegel.
 
-## Language
+Os termos abaixo valem para a documentação, as issues e a interface em pt-BR. No código, os nomes ficam em inglês. Cada termo traz o seu nome no código, e ele deve ser usado sempre, sem sinônimos.
 
-### Devices and sessions
+## Linguagem
 
-**Device**:
-An Android phone or tablet reachable through adb, over USB or the network.
-_Avoid_: phone, handset, target
+### Dispositivos e sessões
 
-**Pairing**:
-Authorizing a Device for wireless adb by scanning a QR code that Spiegel shows, with no cable involved.
-_Avoid_: linking, wireless setup
+**Dispositivo** (código: `Device`):
+Um celular ou tablet Android acessível pelo adb, via USB ou pela rede.
+_Evite_: celular, aparelho, alvo
 
-**Session**:
-One live connection between Spiegel and one Device, streaming its video (and optionally audio) and optionally forwarding the user's input. Several Sessions can run at once, including more than one on the same Device (e.g. its Screen for Remote control and its rear Camera for a Virtual webcam).
-_Avoid_: connection, instance, mirror
+**Pareamento** (código: `Pairing`):
+Autorizar um Dispositivo a usar o adb sem fio escaneando um QR code exibido pelo Spiegel, sem nenhum cabo.
+_Evite_: vinculação, configuração sem fio
 
-**Profile**:
-A named, reusable set of Session settings (e.g. "Rear camera webcam 1080p"). Starting a Session means picking a Device and a Profile. Spiegel ships built-in Profiles and each Device remembers the last one used with it.
-_Avoid_: preset, config, template
+**Sessão** (código: `Session`):
+Uma conexão ativa entre o Spiegel e um Dispositivo, que transmite o vídeo dele (e opcionalmente o áudio) e opcionalmente repassa a entrada do usuário. Várias Sessões podem rodar ao mesmo tempo, inclusive mais de uma no mesmo Dispositivo. Por exemplo, a Tela dele para o Controle remoto e a Câmera traseira para a Webcam virtual.
+_Evite_: conexão, instância, espelhamento
 
-**Video source**:
-What a Session streams from the Device: either its **Screen** or one of its **Cameras**.
-_Avoid_: input, feed
+**Perfil** (código: `Profile`):
+Um conjunto de configurações de Sessão com nome e reutilizável (por exemplo, "Webcam traseira 1080p"). Iniciar uma Sessão é escolher um Dispositivo e um Perfil. O Spiegel vem com Perfis prontos, e cada Dispositivo lembra o último Perfil usado com ele.
+_Evite_: preset, configuração, modelo
 
-### Camera use
+**Fonte de vídeo** (código: `VideoSource`):
+O que uma Sessão transmite do Dispositivo: a **Tela** (código: `Screen`) ou uma das **Câmeras** (código: `Camera`).
+_Evite_: entrada, feed
 
-**Virtual webcam**:
-A camera device on the computer, fed by a Session whose Video source is a Camera, that other apps (OBS, Zoom, Meet, browsers) can select like any physical webcam. There is exactly one, always present under the same name once installed, fed by at most one Session at a time and used by at most one app at a time; with none feeding it, it shows a standby image.
-_Avoid_: webcam mode, cam, camera output
+### Uso da câmera
 
-**Recording**:
-A file on the computer's disk holding a Session's video and audio exactly as the Device encoded them, with nothing written to the Device's own storage and no re-encoding. It is the highest-quality way to capture a Camera, above anything recorded through the Virtual webcam.
-_Avoid_: capture, clip, export
+**Webcam virtual** (código: `VirtualWebcam`):
+Um dispositivo de câmera no computador, alimentado por uma Sessão cuja Fonte de vídeo é uma Câmera, que outros aplicativos (OBS, Zoom, Meet, navegadores) podem escolher como qualquer webcam física. Existe exatamente uma, sempre presente com o mesmo nome depois de instalada. Ela é alimentada por no máximo uma Sessão e usada por no máximo um aplicativo de cada vez. Sem nenhuma Sessão alimentando, mostra uma imagem de espera.
+_Evite_: modo webcam, cam, saída de câmera
 
-### Input
+**Gravação** (código: `Recording`):
+Um arquivo no disco do computador com o vídeo e o áudio de uma Sessão exatamente como o Dispositivo os codificou, sem nada gravado no armazenamento do Dispositivo e sem recompressão. É o jeito de maior qualidade de capturar uma Câmera, acima de qualquer coisa gravada pela Webcam virtual.
+_Evite_: captura, clipe, exportação
 
-**Remote control**:
-Driving the Device from the computer's keyboard and mouse, so a Device with a damaged or unusable touchscreen stays fully usable.
-_Avoid_: control mode, input forwarding
+### Entrada
+
+**Controle remoto** (código: `RemoteControl`):
+Comandar o Dispositivo pelo teclado e mouse do computador, para que um Dispositivo com a tela sensível ao toque danificada ou inutilizável continue totalmente usável.
+_Evite_: modo de controle, repasse de entrada

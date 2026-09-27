@@ -1,10 +1,10 @@
-# Virtual webcam uses Media Foundation on Windows 11 and DirectShow on Windows 10
+# A Webcam virtual usa Media Foundation no Windows 11 e DirectShow no Windows 10
 
-On Windows 11 the Virtual webcam is a Media Foundation virtual camera (`MFCreateVirtualCamera`), because it is the only mechanism visible to every app, including Media Foundation-only ones such as the Windows Camera app, while Frame Server still exposes it to DirectShow apps. That API does not exist on Windows 10, so there Spiegel falls back to a DirectShow source filter (the approach OBS uses), which Media Foundation-only apps cannot see. Only one of the two is registered on a given machine, chosen by Windows version, so apps never list the same Device twice.
+No Windows 11, a Webcam virtual é uma câmera virtual do Media Foundation (`MFCreateVirtualCamera`). É o único mecanismo visível para todos os aplicativos, inclusive os que só usam Media Foundation, como o aplicativo Câmera do Windows, e o Frame Server continua expondo a câmera para os aplicativos DirectShow. Essa API não existe no Windows 10, então lá o Spiegel recorre a um filtro de origem DirectShow (a abordagem do OBS), que os aplicativos que só usam Media Foundation não enxergam. Em cada máquina só um dos dois é registrado, conforme a versão do Windows, para que os aplicativos nunca listem a mesma câmera duas vezes.
 
-## Consequences
+## Consequências
 
-- Both mechanisms are COM DLLs registered under HKLM, so installing the Virtual webcam needs administrator rights.
-- The Media Foundation source runs inside the Frame Server service, not in Spiegel's process, so Spiegel needs its own IPC (e.g. shared memory) to hand it frames. No official sample covers this. It is the riskiest piece and should be prototyped first. The prototype (issue #1, branch `spike/mf-virtual-webcam`) confirmed it works: ~1 ms from Spiegel's process to the consuming app, working in OBS, Zoom, Meet (including the remote participant), Slack, Chrome, Edge and the Windows Camera app.
-- Windows lets only one app use a virtual camera at a time; a second app opening it concurrently fails. This is platform behaviour, not ours to fix.
-- A normal user cannot create the cross-session (`Global\`) shared memory; only the media source, running as LocalService inside Frame Server, can. The media source creates it and Spiegel waits for it (ADR 0004).
+- Os dois mecanismos são DLLs COM registradas em HKLM, então instalar a Webcam virtual exige permissão de administrador.
+- A origem do Media Foundation roda dentro do serviço Frame Server, não no processo do Spiegel. Por isso o Spiegel precisa de um IPC próprio (por exemplo, memória compartilhada) para entregar os quadros. Nenhum exemplo oficial cobre isso, e por ser a parte de maior risco precisava de um protótipo antes de tudo. O protótipo (issue #1, branch `spike/mf-virtual-webcam`) confirmou que funciona: cerca de 1 ms do processo do Spiegel até o aplicativo que usa a câmera, funcionando no OBS, Zoom, Meet (inclusive para o outro participante), Slack, Chrome, Edge e no aplicativo Câmera do Windows.
+- O Windows só deixa um aplicativo usar uma câmera virtual de cada vez. Um segundo aplicativo que tente abri-la ao mesmo tempo falha. É um comportamento da plataforma, não algo que nos cabe resolver.
+- Um usuário comum não consegue criar memória compartilhada entre sessões (`Global\`). Só a origem de mídia, rodando como LocalService dentro do Frame Server, consegue. A origem de mídia cria a memória e o Spiegel espera por ela (ADR 0004).

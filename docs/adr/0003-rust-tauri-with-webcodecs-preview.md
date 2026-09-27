@@ -1,16 +1,18 @@
-# Rust + Tauri 2, with the preview decoded in the webview and the Virtual webcam decoded natively
+# Rust + Tauri 2, com a prévia decodificada na webview e a Webcam virtual decodificada no código nativo
 
-Spiegel is a Tauri 2 app: a Rust core owns adb, the scrcpy protocol and the Sessions, and a TypeScript web UI renders everything the user sees. The video path is split so no raw frames ever cross the Tauri IPC. The core forwards the still-encoded stream (~1-2 MB/s) to the UI, which decodes it with WebCodecs for the in-window preview. When the Virtual webcam is fed, the core also decodes the same stream with FFmpeg and writes the frames to shared memory for the webcam DLL. We chose this because it keeps a web UI (the richest ecosystem for a polished interface) while staying portable and free of bottlenecks. WebCodecs is on by default in WebView2, WKWebView (Safari 16.4+) and WebKitGTK 2.44+, and raw 1080p30 frames (~90 MB/s) exceed what Tauri IPC was measured to carry on Windows (~50 MB/s).
+O Spiegel é um aplicativo Tauri 2. Um núcleo em Rust cuida do adb, do protocolo do scrcpy e das Sessões, e uma interface web em TypeScript desenha tudo o que o usuário vê. O caminho do vídeo é dividido para que nenhum quadro cru passe pelo IPC do Tauri. O núcleo repassa o fluxo ainda codificado (cerca de 1 a 2 MB/s) para a interface, que o decodifica com WebCodecs para a prévia dentro da janela. Quando a Webcam virtual está sendo alimentada, o núcleo também decodifica o mesmo fluxo com FFmpeg e escreve os quadros na memória compartilhada da DLL da webcam.
 
-## Consequences
+Escolhemos isso porque mantém uma interface web (o ecossistema mais rico para uma interface caprichada) e continua portável e sem gargalos. O WebCodecs vem ligado por padrão no WebView2, no WKWebView (Safari 16.4 ou mais recente) e no WebKitGTK 2.44 ou mais recente. Já os quadros crus em 1080p30 (cerca de 90 MB/s) passam do que o IPC do Tauri conseguiu transportar nas medições no Windows (cerca de 50 MB/s).
 
-- While the Virtual webcam is fed and the preview is visible, each frame is decoded twice (webview and core). Hardware decoders absorb this.
-- The default video codec is H.264 or H.265: WKWebView does not enable AV1 decoding by default.
-- The Virtual webcam DLL stays C++ (Windows COM), fed by the Rust core over shared memory.
+## Consequências
 
-## Considered options
+- Enquanto a Webcam virtual está sendo alimentada e a prévia está visível, cada quadro é decodificado duas vezes (na webview e no núcleo). Os decodificadores por hardware dão conta disso.
+- O codec de vídeo padrão é H.264 ou H.265, porque o WKWebView não ativa a decodificação de AV1 por padrão.
+- A DLL da Webcam virtual continua em C++ (COM do Windows), alimentada pelo núcleo Rust por memória compartilhada.
 
-- **Qt 6 (C++/QML)**: a single native frame path, but a weaker UI toolkit and the protocol written from scratch in C++.
-- **Electron or Tauri with Tango (TypeScript scrcpy client) doing all the decoding in the webview**: the Virtual webcam would need raw frames copied out of the webview over IPC. Tango's scrcpy 4.x support was also still beta.
-- **Native wgpu rendering under a transparent webview**: does not work on Linux Wayland.
-- **Media Source Extensions with fragmented MP4**: no evidence of sub-100 ms latency.
+## Opções consideradas
+
+- **Qt 6 (C++/QML)**: um único caminho nativo para os quadros, mas um kit de interface mais fraco e o protocolo escrito do zero em C++.
+- **Electron ou Tauri com Tango (cliente scrcpy em TypeScript) fazendo toda a decodificação na webview**: a Webcam virtual precisaria de quadros crus copiados para fora da webview pelo IPC. Além disso, o suporte do Tango ao scrcpy 4.x ainda estava em beta.
+- **Desenho nativo com wgpu embaixo de uma webview transparente**: não funciona no Linux com Wayland.
+- **Media Source Extensions com MP4 fragmentado**: não há evidência de latência abaixo de 100 ms.

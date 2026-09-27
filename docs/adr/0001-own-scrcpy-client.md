@@ -1,13 +1,13 @@
-# Spiegel is its own scrcpy client, not a wrapper around scrcpy.exe
+# O Spiegel é um cliente próprio do scrcpy, não um invólucro do scrcpy.exe
 
-Spiegel pushes the official `scrcpy-server` to the Device over adb and speaks the scrcpy client/server protocol itself: it decodes the video, renders it inside Spiegel's own window, forwards keyboard and mouse input, and feeds the same frames to the Virtual webcam. We chose this over launching `scrcpy.exe` because the two headline requirements, the phone's image embedded in Spiegel's window and a Virtual webcam on Windows, both need the decoded frames in Spiegel's process, and `scrcpy.exe` exposes neither (it renders into its own SDL window, and its only webcam output is V4L2 on Linux).
+O Spiegel envia o `scrcpy-server` oficial para o Dispositivo pelo adb e fala ele mesmo o protocolo cliente/servidor do scrcpy. Ele decodifica o vídeo, desenha dentro da própria janela, repassa a entrada de teclado e mouse e alimenta a Webcam virtual com os mesmos quadros. Escolhemos isso em vez de rodar o `scrcpy.exe` porque os dois requisitos principais, a imagem do celular dentro da janela do Spiegel e uma Webcam virtual no Windows, precisam dos quadros decodificados no processo do Spiegel. O `scrcpy.exe` não oferece nenhum dos dois: ele desenha na própria janela SDL, e a única saída de webcam dele é o V4L2, só no Linux.
 
-## Consequences
+## Consequências
 
-- The protocol is internal to scrcpy and the server refuses a client of any other version (`doc/develop.md`, "Protocol"). Spiegel bundles one `scrcpy-server` build, pinned to the version it implements (v4.1 at the start), and upgrading scrcpy means porting protocol changes.
-- A user-installed scrcpy is never used. Only adb is configurable: bundled by default, with an optional custom path.
+- O protocolo é interno do scrcpy, e o servidor recusa um cliente de qualquer outra versão (`doc/develop.md`, seção "Protocol"). O Spiegel embute uma única versão do `scrcpy-server`, fixada na versão que ele implementa (v4.1 no início). Atualizar o scrcpy significa portar as mudanças do protocolo.
+- Um scrcpy instalado pelo usuário nunca é usado. Só o adb é configurável: vem embutido por padrão, com um caminho personalizado opcional.
 
-## Considered options
+## Opções consideradas
 
-- **Wrap `scrcpy.exe`**: cheapest, but embedding its SDL window needs per-OS window-reparenting hacks and gives no access to frames for the Virtual webcam.
-- **Hybrid** (wrap for mirroring, own client for the webcam): two implementations of the same job.
+- **Invólucro do `scrcpy.exe`**: é o mais barato, mas encaixar a janela SDL exige truques de reposicionamento de janela diferentes em cada sistema, e não dá acesso aos quadros para a Webcam virtual.
+- **Híbrido** (invólucro para o espelhamento, cliente próprio para a webcam): duas implementações para o mesmo trabalho.

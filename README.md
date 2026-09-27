@@ -2,87 +2,87 @@
 
 # Spiegel
 
-**Your Android phone, on your desktop: mirror it, control it, and use its camera as a webcam.**
+**Seu celular Android no computador: espelhe a tela, controle o aparelho e use a câmera dele como webcam.**
 
-A friendly graphical front-end for [scrcpy](https://github.com/Genymobile/scrcpy). Everything you would do with scrcpy on the command line, done from one good-looking app.
+Uma interface gráfica amigável para o [scrcpy](https://github.com/Genymobile/scrcpy). Tudo o que você faria com o scrcpy na linha de comando, feito por um único aplicativo bonito.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Status: early development](https://img.shields.io/badge/status-early%20development-orange.svg)
-![Platform: Windows first](https://img.shields.io/badge/platform-Windows%20first-lightgrey.svg)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+![Status: desenvolvimento inicial](https://img.shields.io/badge/status-desenvolvimento%20inicial-orange.svg)
+![Plataforma: Windows primeiro](https://img.shields.io/badge/plataforma-Windows%20primeiro-lightgrey.svg)
 
-**English** · [Português (Brasil)](README.pt-BR.md)
+**Português (Brasil)** · [English](README.en.md)
 
 </div>
 
 > [!NOTE]
-> Spiegel is in early development. The design is settled and the riskiest piece, the Windows 11 virtual webcam, has been proven by a prototype, but there is no usable app yet. Star or watch the repo to follow along.
+> O Spiegel está no início do desenvolvimento. O design está definido e a parte mais arriscada, a webcam virtual no Windows 11, já foi comprovada por um protótipo, mas ainda não existe um aplicativo pronto para uso. Dê uma estrela ou acompanhe o repositório para ver o progresso.
 
-*Spiegel* is German for "mirror".
+*Spiegel* significa "espelho" em alemão.
 
-## Why
+## Por quê
 
-scrcpy is fast, light and excellent, but it is a command-line tool with about 108 options. Spiegel puts a real interface on top of it and adds what scrcpy cannot do on its own on Windows:
+O scrcpy é rápido, leve e excelente, mas é uma ferramenta de linha de comando com umas 108 opções. O Spiegel coloca uma interface de verdade por cima dele e acrescenta o que o scrcpy não faz sozinho no Windows:
 
-- **📷 Your phone as a webcam.** Use the phone's rear or front camera in OBS, Zoom, Google Meet, Slack, Chrome and any other app that takes a webcam. Record videos for YouTube with a far better camera than your laptop's.
-- **🖱️ Full control from your keyboard and mouse.** The phone's screen shows inside Spiegel's window and you drive it from the computer. It is a lifesaver when the phone's touchscreen is cracked or dead.
-- **📱 Several devices and sessions at once.** For example, mirror one phone's screen while its rear camera feeds the webcam.
-- **💾 Profiles.** Save settings under a name ("Rear camera webcam 1080p", "Remote control") and start a session in one click. Built-in profiles cover the common cases.
-- **📶 Wireless setup by QR code.** Pair over Wi-Fi without a cable (Android 11+), or switch a USB-connected phone to Wi-Fi.
-- **Nothing to install on the phone.** Like scrcpy, Spiegel only needs USB debugging turned on.
+- **📷 O celular como webcam.** Use a câmera traseira ou frontal no OBS, Zoom, Google Meet, Slack, Chrome e em qualquer aplicativo que aceite webcam. Grave vídeos para o YouTube com uma câmera muito melhor que a do notebook.
+- **🖱️ Controle total pelo teclado e mouse.** A tela do celular aparece dentro da janela do Spiegel e você comanda tudo pelo computador. É uma salvação quando a tela sensível ao toque está trincada ou parou de funcionar.
+- **📱 Vários dispositivos e sessões ao mesmo tempo.** Por exemplo, espelhe a tela de um celular enquanto a câmera traseira dele alimenta a webcam.
+- **💾 Perfis.** Salve configurações com um nome ("Webcam traseira 1080p", "Controle remoto") e inicie uma sessão com um clique. Perfis prontos cobrem os usos mais comuns.
+- **📶 Conexão sem fio por QR code.** Pareie pelo Wi-Fi sem cabo (Android 11 ou mais recente), ou passe um celular conectado por USB para o Wi-Fi.
+- **Nada para instalar no celular.** Assim como no scrcpy, basta ativar a depuração USB.
 
-## How it works
+## Como funciona
 
-Spiegel is its own scrcpy client. It pushes the official `scrcpy-server` to the phone over adb and talks to it directly, instead of launching `scrcpy.exe`. That is what lets it show the phone inside its own window and feed the same video to a virtual webcam.
+O Spiegel é o seu próprio cliente do scrcpy. Em vez de abrir o `scrcpy.exe`, ele envia o `scrcpy-server` oficial para o celular via adb e conversa diretamente com ele. É isso que permite mostrar o celular dentro da própria janela e enviar o mesmo vídeo para uma webcam virtual.
 
 ```
-Phone                         Computer
-─────                         ──────────────────────────────────────────────────
-Camera / Screen               Spiegel (Rust core)
-  └─► scrcpy-server ──USB/Wi-Fi──► encoded video
-      (encodes H.264/H.265)          ├─► FFmpeg decode ─► shared memory ─► Virtual webcam ─► OBS, Zoom, Meet…
-                                     └─► Spiegel window (WebCodecs) ─► live preview + keyboard/mouse control
+Celular                       Computador
+───────                       ──────────────────────────────────────────────────
+Câmera / Tela                 Spiegel (núcleo em Rust)
+  └─► scrcpy-server ──USB/Wi-Fi──► vídeo comprimido
+      (codifica H.264/H.265)         ├─► decodificação FFmpeg ─► memória compartilhada ─► Webcam virtual ─► OBS, Zoom, Meet…
+                                     └─► janela do Spiegel (WebCodecs) ─► prévia ao vivo + controle por teclado/mouse
 ```
 
-| Piece | Technology |
+| Parte | Tecnologia |
 |---|---|
-| App shell and UI | [Tauri 2](https://tauri.app), TypeScript web UI |
-| Core: adb, scrcpy protocol, sessions | Rust |
-| Video decoding | WebCodecs for the preview, FFmpeg for the webcam |
-| Virtual webcam | C++ COM DLL: Media Foundation on Windows 11, DirectShow on Windows 10 |
-| Phone side | Official `scrcpy-server`, pinned to v4.1 |
+| Aplicativo e interface | [Tauri 2](https://tauri.app), interface web em TypeScript |
+| Núcleo: adb, protocolo do scrcpy, sessões | Rust |
+| Decodificação de vídeo | WebCodecs para a prévia, FFmpeg para a webcam |
+| Webcam virtual | DLL COM em C++: Media Foundation no Windows 11, DirectShow no Windows 10 |
+| Lado do celular | `scrcpy-server` oficial, fixo na v4.1 |
 
-The reasoning behind each choice is recorded in [`docs/adr/`](docs/adr).
+Os motivos de cada escolha estão registrados em [`docs/adr/`](docs/adr).
 
 ## Roadmap
 
-- [x] **Design**: domain model and architecture decisions
-- [x] **Virtual webcam prototype (Windows 11)**: ~1 ms from Spiegel to the consuming app. It works in OBS, Zoom, Google Meet (including the remote side of a call), Slack, Chrome, Edge and the Windows Camera app.
-- [ ] **Screen + remote control over USB**: the phone inside Spiegel's window, driven by keyboard and mouse
-- [ ] **Phone camera, recorded and as a webcam**: record straight to the computer's disk with no re-encoding (up to 4K when the phone can), or feed the virtual webcam at 720p/1080p; rear or front camera, fps, zoom, torch
-- [ ] **Profiles, QR pairing, audio, installer, system tray**
-- [ ] **Languages**: English and Portuguese first, open to more
-- [ ] **Linux and macOS**
+- [x] **Design**: modelo de domínio e decisões de arquitetura
+- [x] **Protótipo da webcam virtual (Windows 11)**: cerca de 1 ms do Spiegel até o aplicativo que usa a câmera. Funciona no OBS, Zoom, Google Meet (inclusive do outro lado da chamada), Slack, Chrome, Edge e no aplicativo Câmera do Windows.
+- [ ] **Tela + controle remoto por USB**: o celular dentro da janela do Spiegel, comandado por teclado e mouse
+- [ ] **Câmera do celular, gravada e como webcam**: grave direto no disco do computador, sem recompressão (até 4K, se o celular suportar), ou alimente a webcam virtual em 720p/1080p; câmera traseira ou frontal, fps, zoom, lanterna
+- [ ] **Perfis, pareamento por QR code, áudio, instalador, bandeja do sistema**
+- [ ] **Idiomas**: inglês e português primeiro, aberto a outros
+- [ ] **Linux e macOS**
 
-Later ideas include a virtual microphone, a guided rescue mode for phones whose screen is dead and USB debugging is not yet authorized, virtual displays and gamepad support.
+Ideias para depois incluem um microfone virtual, um modo de socorro guiado para celulares com a tela morta e a depuração USB ainda não autorizada, displays virtuais e suporte a gamepad.
 
-## Requirements (planned)
+## Requisitos (previstos)
 
-- **Windows 11** for the full feature set. Windows 10 is supported with a DirectShow webcam, which apps that only use Media Foundation, such as the Windows Camera app, cannot see.
-- An Android device with **USB debugging** enabled and this computer authorized. The camera needs Android 12 or later, as in scrcpy.
-- Administrator rights **only once**, the first time you turn on the virtual webcam. Everything else installs per user.
+- **Windows 11** para ter todos os recursos. O Windows 10 também é suportado, com a webcam via DirectShow, que aplicativos que só usam Media Foundation (como a Câmera do Windows) não enxergam.
+- Um dispositivo Android com a **depuração USB** ativada e este computador autorizado. A câmera exige Android 12 ou mais recente, como no scrcpy.
+- Permissão de administrador **uma única vez**, na primeira vez que você ativar a webcam virtual. Todo o resto é instalado só para o seu usuário.
 
-Windows allows only one app at a time to use a virtual camera.
+O Windows permite que apenas um aplicativo por vez use uma câmera virtual.
 
-## Project docs
+## Documentação do projeto
 
-- [`CONTEXT.md`](CONTEXT.md): the project's vocabulary (Device, Session, Profile, Virtual webcam…)
-- [`docs/adr/`](docs/adr): architecture decision records
-- [`CLAUDE.md`](CLAUDE.md): notes for AI coding agents working on the repo
+- [`CONTEXT.md`](CONTEXT.md): o vocabulário do projeto (Dispositivo, Sessão, Perfil, Webcam virtual…)
+- [`docs/adr/`](docs/adr): registros de decisões de arquitetura
+- [`CLAUDE.md`](CLAUDE.md): notas para agentes de IA que trabalham no repositório
 
-## Acknowledgements
+## Agradecimentos
 
-Spiegel stands on the shoulders of [scrcpy](https://github.com/Genymobile/scrcpy) by Genymobile and Romain Vimont, licensed under Apache 2.0. Spiegel is an independent project, not affiliated with Genymobile.
+O Spiegel se apoia no [scrcpy](https://github.com/Genymobile/scrcpy), da Genymobile e de Romain Vimont, licenciado sob Apache 2.0. O Spiegel é um projeto independente, sem vínculo com a Genymobile.
 
-## License
+## Licença
 
 [MIT](LICENSE) © 2026 Junior Martins
