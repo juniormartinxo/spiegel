@@ -52,8 +52,8 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | Edge 154 | ✅ 1280×720 @ 30 fps, 0 perdas | headless, `browser/probe.html` |
 | Alimentador morre e volta com a câmera aberta | ✅ ~0,5 s congelado (limite do heartbeat) → espera → ao vivo de novo, sem reabrir | `vcamctl probe` + `taskkill` |
 | DirectShow (enumeração) | ✅ aparece com YUY2 e NV12 1280×720 @ 30 | `vcamctl dshow` |
-| OBS 32.1 "Dispositivo de captura de vídeo" | ✅ 1280×720, formato "Qualquer" (YUY2 e NV12 explícitos: pendente) | manual, screenshot do usuário |
-| Zoom 7.1.9 | ⏳ pendente (manual) | |
+| OBS 32.1 "Dispositivo de captura de vídeo" | ✅ 1280×720 com formato "Qualquer", YUY2 e NV12 | manual, pelo usuário |
+| Zoom 7.1.9 | ✅ prévia em Configurações → Vídeo (nome longo truncado: "Spiegel Spike Webcam (Câmera Virtual d...") | manual, screenshot do usuário |
 | Discord | ⏳ pendente (manual) | |
 | Teams (e o outro lado da chamada) | ⏳ pendente. O Teams não está instalado; testar no teams.microsoft.com ou instalar | |
 | webcamtests.com | ⏳ pendente (manual) | |
@@ -68,6 +68,7 @@ Os logs da DLL ficam em `C:\ProgramData\SpiegelVCamSpike\logs\<processo>-<pid>.l
 | alimentador → quadro apresentado no Chrome (`expectedDisplayTime`, headless) | 27 ms | 21–63 ms |
 | alimentador → quadro apresentado no Edge (idem) | 33 ms | 19–36 ms |
 | alimentador → tela no app Câmera (screenshot com a janela de relógio ao lado) | ~31 ms | 17–49 ms (5 amostras) |
+| alimentador → prévia de Configurações do Zoom (screenshot) | ~21 ms | 1 amostra |
 | alimentador → prévia principal do OBS (screenshot) | ~9 ms | 1 amostra; a prévia da janela de propriedades mostrava um quadro atrás (~43 ms) |
 
 O transporte entre processos custa ~1 ms. O resto vem da renderização do app e da idade do quadro (até 33 ms a 30 fps). O tempo até o primeiro quadro depois de abrir a câmera é de ~15–45 ms (`ActivateObject` ~30 ms).
