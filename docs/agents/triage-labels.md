@@ -1,15 +1,15 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+The skills speak in terms of five canonical triage roles. The `SPG` project in It's a Plan has no dedicated triage labels, so each role maps to a column (by `stateType`), an assignee or delegate, or the `Planning` label.
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
-| -------------------------- | -------------------- | ---------------------------------------- |
-| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
-| `wontfix`                  | `wontfix`            | Will not be actioned                     |
+| Role in mattpocock/skills | Representation in `SPG`                                          | Meaning                                  |
+| ------------------------- | ---------------------------------------------------------------- | ---------------------------------------- |
+| `needs-triage`            | `backlog` column, no assignee, no `Planning` label               | Maintainer needs to evaluate this issue  |
+| `needs-info`              | label `Planning` (stays in `backlog`)                            | Waiting on reporter for more information |
+| `ready-for-agent`         | `unstarted` column (Todo), delegate **Dusky Agent**              | Fully specified, ready for an AFK agent  |
+| `ready-for-human`         | `unstarted` column (Todo), assignee **Junior Martins**           | Requires human implementation            |
+| `wontfix`                 | `canceled` column                                                | Will not be actioned                     |
 
-When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
+When a skill says "apply label X", apply the representation from this table with `update_issue` instead. Dusky Agent is an AI agent, so it goes in `delegateUserId`; people go in `assigneeUserId`. When moving out of `needs-info`, remove the `Planning` label. Resolve column, label and user ids via `get_project` (`projectKey: "SPG"`); never create new labels.
 
-Edit the right-hand column to match whatever vocabulary you actually use.
+Edit the right-hand column to change the vocabulary.

@@ -47,7 +47,7 @@ O que já foi decidido (veja o `CONTEXT.md` para o vocabulário e `docs/adr/` pa
 - Windows primeiro, portável para Linux e macOS. A interface vem em pt-BR e inglês, com os textos em arquivos de tradução abertos a outros idiomas.
 - Ordem de entrega:
   1. Protótipo descartável da Webcam virtual com Media Foundation (concluído, ADR 0004).
-  2. Tela + Controle remoto por USB (spec na issue #4).
+  2. Tela + Controle remoto por USB (spec na SPG-3).
   3. Câmera como Fonte de vídeo, alimentando uma Gravação e a Webcam virtual.
   4. Perfis, Pareamento, áudio, i18n, instalador e bandeja do sistema.
 - A Webcam virtual anuncia formatos fixos, independentes do Dispositivo: 720p30, 1080p30 e 1080p60, mais 2160p30 atrás de uma opção desligada por padrão, todos NV12 16:9. O núcleo Rust adapta cada quadro da Sessão ao formato que o aplicativo escolheu. Por padrão ele corta para 16:9, com barras pretas como opção do Perfil, e os Perfis de webcam pedem 16:9 ao Dispositivo (`--camera-ar=16:9`), então o corte raramente é necessário. Para gravar em 4K para o YouTube, o caminho recomendado é a Gravação, não a Webcam virtual.
@@ -72,11 +72,11 @@ Fatos relevantes sobre o scrcpy:
 
 ### Issue tracker
 
-As issues ficam no GitHub Issues de juniormartinxo/spiegel e são gerenciadas com o `gh`. Veja `docs/agents/issue-tracker.md`.
+As issues ficam no It's a Plan, projeto `SPG` (http://localhost:43101/jm/SPG), e são gerenciadas pelo servidor MCP `itsaplan`, nunca pelo `gh issue`. O GitHub (juniormartinxo/spiegel) guarda só o código e os PRs. As issues antigas do GitHub foram migradas (#1 → SPG-1, #4 → SPG-3 etc.) e apagadas de lá. Veja `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Usa as cinco labels de triagem padrão: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. Veja `docs/agents/triage-labels.md`.
+Os cinco papéis de triagem (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix) viram colunas e responsáveis do `SPG`, mais a etiqueta `Planning` para needs-info: ready-for-agent é a coluna Todo delegada ao Dusky Agent. Veja `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

@@ -334,7 +334,7 @@ fn server_args(scid: u32, tunnel_forward: bool) -> Vec<String> {
         format!("scid={scid:08x}"),
         "log_level=info".into(),
         "audio=false".into(),
-        // O Controle remoto chega nas próximas etapas (#7).
+        // O Controle remoto chega nas próximas etapas (SPG-6).
         "control=false".into(),
     ];
     if tunnel_forward {

@@ -2,7 +2,7 @@
 
 No Windows 11, a origem de mídia da Webcam virtual roda dentro do serviço Frame Server, na sessão 0. Por isso os quadros que ela lê do Spiegel precisam ficar numa seção de memória compartilhada entre sessões (`Global\`). O Windows só deixa processos com `SeCreateGlobalPrivilege` criarem esse tipo de seção, e um usuário comum não tem esse privilégio. Então a origem de mídia, que roda como LocalService e tem o privilégio, cria a seção com uma DACL explícita no momento em que um aplicativo abre a câmera. O Spiegel continua tentando abri-la (a cada 0,5 s, mais ou menos) e só começa a publicar quadros quando consegue.
 
-Escolhemos isso porque ninguém vê a câmera antes de algum aplicativo abri-la. O custo é no máximo cerca de 0,5 s de imagem de espera no início, e em troca o Spiegel não precisa de nenhum componente extra. O protótipo (issue #1) funciona exatamente assim.
+Escolhemos isso porque ninguém vê a câmera antes de algum aplicativo abri-la. O custo é no máximo cerca de 0,5 s de imagem de espera no início, e em troca o Spiegel não precisa de nenhum componente extra. O protótipo (SPG-1) funciona exatamente assim.
 
 ## Consequências
 
