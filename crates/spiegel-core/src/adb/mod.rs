@@ -1,6 +1,6 @@
 //! Acesso ao adb.
 //!
-//! [`AdbLink`] é o ponto de substituição interno da spec (#4): a versão real
+//! [`AdbLink`] é o ponto de substituição interno da spec (SPG-3): a versão real
 //! ([`server_link::AdbServerLink`]) fala com o servidor adb, e nos testes entra
 //! o adb falso (`testing::FakeAdb`).
 

@@ -2,7 +2,7 @@
 //! o protocolo do scrcpy.
 //!
 //! O crate não depende do Tauri. A interface (ou um teste) usa só a API
-//! pública daqui, que é a costura de teste descrita na spec (#4).
+//! pública daqui, que é a costura de teste descrita na spec (SPG-3).
 
 pub mod adb;
 pub mod device;

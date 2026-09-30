@@ -14,7 +14,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // O Dispositivo com a visualização de Sessão aberta. Por enquanto há uma
   // Sessão por vez; iniciar outra troca a atual. Várias ao mesmo tempo vêm
-  // na #14.
+  // na SPG-13.
   const [session, setSession] = useState<string | null>(null);
 
   useEffect(() => {
